@@ -1,4 +1,4 @@
-# KatzoApp - IoT pet feeding device
+# Katzomat - IoT pet feeding device
 Control your pets feeding schedule while you are away/sleeping/working... just take your mind off of it.<br/>
 There are three components to this System:
 1. A MQTT broker is the central communication hub, so it should run on a dedicated server.
