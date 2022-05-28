@@ -1,0 +1,585 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+
+#:set text_color get_color_from_hex("#000000")
+#:set focus_color get_color_from_hex("#e7e4c0")
+#:set ripple_color get_color_from_hex("#c5bdd2")
+#:set bg_color get_color_from_hex("#f7f4e7")
+#:set selected_color get_color_from_hex("#0c6c4d")
+
+#:set white get_color_from_hex("#BAE8B7")
+#:set yellow get_color_from_hex("#FFFF00")
+#:set red get_color_from_hex("#FF0000")
+
+
+
+<DrawerClickableItem@MDNavigationDrawerItem>
+    focus_color: focus_color
+    unfocus_color: bg_color
+    text_color: text_color
+    icon_color: text_color
+    ripple_color: ripple_color
+    selected_color: selected_color
+
+
+<DrawerLabelItem@MDNavigationDrawerItem>
+    bg_color: bg_color
+    text_color: text_color
+    icon_color: text_color
+    _no_ripple_effect: True
+
+<MD3Card>
+    padding: "16dp"
+    size_hint: None, None
+    size: "200dp", "100dp"
+
+    MDRelativeLayout:
+        size_hint: None, None
+        size: root.size
+
+        MDIconButton:
+            icon: "dots-vertical"
+            pos:
+                root.width - (self.width + root.padding[0] + dp(4)),                     root.height - (self.height + root.padding[0] + dp(4))
+
+        MDLabel:
+            id: label
+            text: root.text
+            adaptive_size: True
+            color: .2, .2, .2, .8
+
+<MD4Card>
+    padding: "16dp"
+    size_hint: None, None
+    size: "200dp", "100dp"
+    MDRelativeLayout:
+        size_hint: None, None
+        size: root.size
+        MDCard:
+            size_hint: None, None
+            size: "300dp", "400dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            padding: "25dp"
+            spacing: "25dp"
+            orientation: "vertical"
+            border_radius: "20dp"
+            radius: ["15dp"]
+
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "10dp"
+
+                MDLabel:
+                    id: add_account_label
+                    text: "Add Account"
+                    font_size: "40dp"
+                    halign: "center"
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    padding_y: "15dp"
+
+
+
+<CustomSnackbar>
+
+    MDIconButton:
+        pos_hint: {'center_y': .5}
+        icon: root.icon
+        opposite_colors: True
+
+    MDLabel:
+        id: text_bar
+        size_hint: 1, None
+        height: self.texture_size[1]
+        text: root.text
+        text_size: self.width, None
+        font_size: root.font_size
+        theme_text_color: 'Custom'
+        color: app.theme_cls.primary_light
+        shorten: True
+        shorten_from: 'right'
+        pos_hint: {'center_y': .5}
+
+
+<ListItemWithButton>:
+    id: timetable_item
+
+    IconRightWidget:
+        icon: "minus"
+        pos_hint: {'right':1, 'center_y': 0.5}
+        on_release: app.remove_timetable_item(timetable_item)
+
+
+
+<ItemConfirm>
+    on_release: root.set_icon(check)
+
+    CheckboxLeftWidget:
+        id: check
+
+<ListItemWithCheckbox@OneLineAvatarIconListItem>:
+    msg: ''
+    MyCheckbox:
+        on_active: app.root.printS(root.msg)
+
+MDScreen:
+
+    BoxLayout:
+        orientation: "vertical"
+
+
+        MDBoxLayout:
+            id: box
+            orientation: 'vertical'
+            pos_hint: {'top':1}
+            size_hint_y: None
+            height: "170dp"
+
+
+            MDBoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: "60dp"
+                md_bg_color: app.theme_cls.primary_color
+                
+                MDToolbar:
+                    title: "KatzoApp"
+                    specific_text_color: app.theme_cls.primary_light
+                    size_hint_x: 0.5
+                    left_action_items: [["menu", lambda x: nav_drawer.set_state()]]
+
+                    
+                MDFillRoundFlatButton: 
+                    id: login_button
+                    text: "Log in"
+                    size_hint_y: 0.7
+                    pos_hint: {"center_y":0.5}
+                    on_release: app.login()
+                    padding_x: "15dp"
+                    font_style: "Button"
+                    text_color: app.theme_cls.primary_light
+
+#                MDIconButton:
+#                    id: menu_button
+#                    icon: "dots-vertical"
+#                    pos_hint: {"center_y":0.5}
+#                    padding_x: "15dp"
+#                    on_release: app.menu.open()
+                
+                Widget:
+                    size_hint_x: None
+                    width: "10dp"
+
+            MDBoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: "60dp"
+                md_bg_color: app.theme_cls.primary_color
+
+                MDIconButton:
+                    icon: "help-circle-outline"
+                    pos_hint: {"center_y":0.5}
+                    on_press: app.show_help_dialog()
+
+                MDLabel:
+                    id: left_status_label
+                    text: "Katzomat is:"
+                    font_size: "18dp"
+                    color: app.theme_cls.primary_light
+                    halign: 'right'
+                    size_hint: 0.25, 0.9
+                    pos_hint: {"center_y":0.5}
+                    padding_x: "15dp"
+
+                MDLabel:
+                    id: status_label
+                    text: "unknown"
+                    font_size: "18dp"
+                    color: app.theme_cls.primary_light
+                    halign: 'left'
+                    size_hint: 0.25, 0.9
+                    pos_hint: {"center_y":0.5}
+                    padding_x: "15dp"
+
+            MDTabs:
+                id: tabs
+                on_tab_switch: app.on_tab_switch(*args)
+                specific_text_color: app.theme_cls.primary_light
+                specific_secondary_text_color: app.theme_cls.primary_light
+                indicator_color: app.theme_cls.primary_light
+
+
+
+        MDNavigationLayout:
+
+            ScreenManager:
+                id: screen_manager
+
+                MDScreen:
+                    name: "screen_feeder"
+
+                    MDBoxLayout:
+                        orientation: 'vertical'
+                        spacing: "12dp"
+                        padding: "12dp"
+
+                        AsyncImage:
+                            id: image
+                            size: self.texture_size
+                            allow_stretch: True
+                            nocache: False
+                            anim_delay: -1
+                            anim_loop: 0
+                            size_hint:  0.95, 0.95
+                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: take_picture_button.height + feed_button.height + feed_button.height
+                            spacing: 0
+                            padding: 0
+
+                            MDFillRoundFlatButton: 
+                                id: take_picture_button
+                                text: "Refresh Image"
+                                font_style: "Button"
+                                on_press: app.take_picture()
+                                pos_hint: {"center_y":0.5, "center_x":0.5}
+                                text_color: app.theme_cls.primary_light
+                                md_bg_color: app.theme_cls.primary_dark
+
+
+                            MDBoxLayout:
+                                orientation: 'horizontal'
+
+                                Widget:
+                                    size_hint_x: 0.10
+
+                                MDLabel:
+                                    text: "Flash: "
+                                    halign: "right"
+                                    color: app.theme_cls.primary_light
+                                    pos_hint: {"center_y":0.5}
+                                    size_hint_y: None
+                                    size_y: "10dp"
+
+                                Widget:
+                                    size_hint_x: None
+                                    width: "10dp"
+
+                                CheckboxLeftWidget:
+                                    id: flash_checkbox
+                                    size_hint_x: None
+                                    width: "60dp"
+                                    size_hint_y: None
+                                    size_y: "10dp"
+                                    pos_hint: {"center_y":0.5}
+                                    active: app.on_checkbox_active
+                                    selected_color: app.theme_cls.primary_light
+                                    unselected_color: app.theme_cls.primary_light
+
+                                Widget:
+                                    size_hint_x: None
+                                    width: "30dp"
+
+                                MDFillRoundFlatButton: 
+                                    id: feed_button
+                                    text: "Feed The Cat"
+                                    text_color: app.theme_cls.primary_light
+                                    font_style: "Button"
+                                    on_press: app.show_alert_dialog()
+                                    pos_hint: {"center_y":0.5, "center_x":0.5}
+                                    md_bg_color: app.theme_cls.primary_dark
+
+                                Widget:
+                                    size_hint_x: 0.10
+
+
+                MDScreen:
+                    name: "screen_overview"
+
+                    MDBoxLayout:
+                        spacing: "12dp"
+                        padding: "12dp"
+                        orientation: 'vertical'
+
+
+
+                        ScrollView:
+                            MDList:
+                                id: feeding_history
+
+
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            spacing: "10dp"
+                            size_hint_y: None
+                            height: refresh_history_button.height + dp(20)
+
+                            MDFillRoundFlatButton:
+                                id: refresh_history_button 
+                                text: "Refresh Feeding History"
+                                font_style: "Button"
+                                pos_hint: {"center_x": 0.5, "center_y":0.5}
+                                on_press: app.refresh_status_verbose()
+                                text_color: app.theme_cls.primary_light
+                                md_bg_color: app.theme_cls.primary_dark
+
+
+
+
+
+                MDScreen:
+                    name: "screen_timetable"
+                    
+                    MDBoxLayout:
+                        spacing: "12dp"
+                        padding: "12dp"
+                        orientation: 'vertical'
+
+                        ScrollView:
+
+                            MDList:
+                                id: scroll
+
+
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            spacing: "10dp"
+                            size_hint_y: None
+                            height: send_timetable_button.height + send_timetable_button.height + send_timetable_button.height + dp(20)
+
+                            MDFillRoundFlatButton: 
+                                id: send_timetable_button
+                                text: "Send Timetable to Device"
+                                font_style: "Button"
+                                pos_hint: {"center_x":0.5}
+                                on_press: app.save_timetable()
+                                text_color: app.theme_cls.primary_light
+                                md_bg_color: app.theme_cls.primary_dark
+
+                            MDFillRoundFlatButton: 
+                                id: add_recurring_timetable_button
+                                text: "Add Recurring Feed"
+                                font_style: "Button"
+                                pos_hint: {"center_x":0.5}
+                                on_press: app.add_recurring_timetable()
+                                text_color: app.theme_cls.primary_light
+                                md_bg_color: app.theme_cls.primary_dark
+
+                            MDFillRoundFlatButton: 
+                                id: add_timetable_button
+                                text: "Add Onetime Feed"
+                                font_style: "Button"
+                                pos_hint: {"center_x":0.5}
+                                on_press: app.add_timetable()
+                                text_color: app.theme_cls.primary_light
+                                md_bg_color: app.theme_cls.primary_dark
+
+
+
+
+                
+
+                MDScreen:
+                    id: screen_account_settings
+                    name: "screen_account_settings" 
+
+        
+                    MDBoxLayout:
+                        id: box_top
+                        spacing: "12dp"
+                        padding: "12dp"
+                        orientation: 'vertical'
+
+                        MDLabel:
+                            id: add_account_label
+                            text: "Change Account Infos"
+                            font_size: "18dp"
+                            halign: "center"
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                            padding_y: "15dp"
+                            color: app.theme_cls.primary_light
+
+                        MDTextFieldRound:
+                            id: domain
+                            hint_text: "domain"
+                            text: ""
+                            color_active: app.theme_cls.primary_light
+                            normal_color: app.theme_cls.primary_dark
+                            icon_right: "domain"
+                            size_hint_x: 0.9
+                            font_size: "14dp"
+                            pos_hint: {"center_x": 0.5}
+                        
+                        MDTextFieldRound:
+                            id: user_name
+                            hint_text: "username"
+                            text: ""
+                            color_active: app.theme_cls.primary_light
+                            normal_color: app.theme_cls.primary_dark
+                            icon_right: "account"
+                            size_hint_x: 0.9
+                            font_size: "14dp"
+                            pos_hint: {"center_x": 0.5}
+
+                        MDTextFieldRound:
+                            id: password
+                            hint_text: "password"
+                            text: ""
+                            color_active: app.theme_cls.primary_light
+                            normal_color: app.theme_cls.primary_dark
+                            icon_right: "eye-off"
+                            size_hint_x: 0.9
+                            font_size: "14dp"
+                            pos_hint: {"center_x": 0.5}
+                            password: True
+
+                        Widget:
+                            size_hint_y: 1
+
+                        MDFillRoundFlatButton: 
+                            id: acc_settings_save_button
+                            text: "Save"
+                            font_size: "12dp"
+                            pos_hint: {"center_x": 0.5}
+                            font_style: "Button"
+                            text_color: app.theme_cls.primary_light
+                            md_bg_color: app.theme_cls.primary_dark
+                            on_press: app.save_account_settings()
+
+
+
+
+
+                MDScreen:
+                    id: screen_device_settings
+                    name: "screen_device_settings" 
+       
+                    MDBoxLayout:
+                        spacing: "12dp"
+                        padding: "12dp"
+                        orientation: 'vertical'
+
+                        MDLabel:
+                            id: add_account_label
+                            text: "Change Device Settings"
+                            font_size: "18"
+                            halign: "center"
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                            padding_y: "15dp"
+                            color: app.theme_cls.primary_light
+
+                        MDLabel:
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                            text: "Rotation-Time in milliseconds: "
+                            halign: "right"
+                            color: app.theme_cls.primary_light
+                            halign: "center"
+                            font_size: "14dp"
+
+
+                        MDTextFieldRound:
+                            id: rotation_time
+                            hint_text: "Rotation Time"
+                            text: ""
+                            color_active: app.theme_cls.primary_light
+                            normal_color: app.theme_cls.primary_dark
+                            icon_right: "domain"
+                            pos_hint: {"center_x": 0.5}
+                            size_hint_x: 0.9
+                            font_size: "14dp"
+                            input_filter: 'int'
+
+                        Widget:
+                            size_hint_y: 1
+
+                        MDFillRoundFlatButton: 
+                            id: dev_settings_save_button
+                            text: "Save"
+                            font_size: "12dp"
+                            pos_hint: {"center_x": 0.5}
+                            font_style: "Button"
+                            text_color: app.theme_cls.primary_light
+                            md_bg_color: app.theme_cls.primary_dark
+                            on_press: app.save_device_settings()
+
+
+
+    MDNavigationDrawer:
+        id: nav_drawer
+        radius: (0, "16dp", "16dp", 0) if self.anchor == "left" else ("16dp", 0, 0, "16dp")
+        md_bg_color: app.theme_cls.primary_color
+
+        ContentNavigationDrawer:
+            orientation: "vertical"
+            padding: "8dp"
+            spacing: "8dp"
+
+            AnchorLayout:
+                anchor_x: "left"
+                size_hint_y: None
+                height: avatar.height
+
+                Image:
+                    id: avatar
+                    size_hint: None, None
+                    size: "56dp", "56dp"
+                    source: "kivymd.png"
+
+            MDLabel:
+                text: "KatzoApp"
+                font_style: "Button"
+                size_hint_y: None
+                height: self.texture_size[1]
+                color: app.theme_cls.primary_light
+
+            MDLabel:
+                text: "kivydevelopment@gmail.com"
+                font_style: "Caption"
+                size_hint_y: None
+                height: self.texture_size[1]
+                color: app.theme_cls.primary_light
+
+            ScrollView:
+
+                MDList:
+
+                    OneLineListItem:
+                        text: "Account Settings"    
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_light
+                        on_press:
+                            nav_drawer.set_state("close")
+                            screen_manager.current = "screen_account_settings"
+
+                    OneLineListItem:
+                        text: "Device Settings"
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_light
+                        on_press:
+                            nav_drawer.set_state("close")
+                            screen_manager.current = "screen_device_settings"
+
+                    OneLineListItem:
+                        text: "About"
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_light
+                        on_press:
+                            nav_drawer.set_state("close")
+                            screen_manager.current = "screen_feeder"
+
+    MDSpinner:
+        id: spinner
+        size_hint: None, None
+        size: dp(46), dp(46)
+        pos_hint: {'center_x': .5, 'center_y': .5}
+        active: False
+
+              
+
+                
+        hint_text: "Street"

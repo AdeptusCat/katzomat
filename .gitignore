@@ -1,0 +1,6 @@
+.buildozer
+bin
+*.aes
+image_0.png
+__pycache__
+esp32.zip
