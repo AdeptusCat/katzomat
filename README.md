@@ -1,18 +1,22 @@
 # KatzoApp - IoT pet feeding device
 Control your pets feeding schedule while you are away/sleeping/working... just take your mind off of it.<br/>
-This repository is for the mobile App. Check out the repository of the Katzomat, which is the hardware part of the project: [Katzomat](https://github.com/AdeptusCat/katzomat "Katzomat repository")
+There are three components to this System:
+1. A MQTT broker is the central communication hub, so it should run on a dedicated server.
+2. The feeding device 'Katzomat', that is controlled by a microcontroller, in this case a ESP-32-CAM, which is connected to the MQTT broker.
+3. The mobile software 'Katzo-app', that is used to setup the feeding schedule and check in on your cat's eating habbit by taking images.'
 
 ### How does the App work?
 The App connects to a MQTT broker that holds all the relevant information about the Katzomat.
 e.g. feeding schedule, status (online/offline), latest image of the feeding bowl, history of feeding.
 
 ### What User Data is saved, and where?
-Locally stored data:    feeding schedule, last image, Katzomat settings, user credentials.<br/>
-Online stored data:     feeding schedule, last image, Katzomat settings.
+Locally stored data on the app:             feeding schedule, last image, Katzomat settings, user credentials.<br/>
+Locally stored data on the microcontroller: feeding schedule, last image, Katzomat settings, user credentials.<br/>
+Online stored data on the MQTT broker:      feeding schedule, last image, Katzomat settings.
 
 ### Is my data save?
 The network transmission is ssl encrypted. Local data on the mobile device is encrypted using the pyAesCrypt library.<br/>
-Its certainly possible to setup your own MQTT broker, if you don't trust others with your data.
+Its certainly possible to setup your own MQTT broker, if you don't trust others with your data. A tutorial on that is in planning.
 
 ### Is this software cross-platform?
 Yes. It is written in python and kivy/kivyMD. Its possible to compile with buildozer for Android, iOS and also possible to compile for desktop usage.
@@ -47,9 +51,6 @@ Yes. You would have to make some changes to how the actual mechanics work, but o
 This is an IoT (Internet of Things) project. So it uses the MQTT protocol to communicate between the clients (e.g. the feeding device and the App) to remote control a device via the Internet.<br/>
 The App is written in Python and Kivy/KivyMD. The microcontroller is an ESP32 that is programmed c/c++.
 
-## The Device: Katzomat
-The device is a microcontroller, connected to the internet.<br/>
-Check out the repository of the microcontroller: [KatzoApp](https://github.com/AdeptusCat/katzoapp "Katzoapp repository")
 
 
 
