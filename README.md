@@ -2,8 +2,8 @@
 Control your pets feeding schedule while you are away/sleeping/working... just take your mind off of it.<br/>
 There are three components to this System:
 1. A MQTT broker is the central communication hub, so it should run on a dedicated server.
-2. The feeding device 'Katzomat', that is controlled by a microcontroller, in this case a ESP-32-CAM, which is connected to the MQTT broker.
-3. The mobile software 'Katzo-app', that is used to setup the feeding schedule and check in on your cat's eating habbit by taking images.'
+2. The feeding device 'Katzomat', that is controlled by a microcontroller, in this case a ESP-32-CAM, which is a MQTT client.
+3. The mobile software 'Katzo-app', that is used to setup the feeding schedule and check in on your cat's eating habbit by taking images. Its also a MQTT client
 
 ### How does the App work?
 The App connects to a MQTT broker that holds all the relevant information about the Katzomat.
