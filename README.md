@@ -74,7 +74,7 @@ You will need a series of components, that are mostely readily available. The on
 <img src='assets/WormGearMotor.jpg' width='300'>
 <br/>
 
-6. Flexible Coupling for the Motor and Shaft<br/>
+6. Flexible Coupling for the Motor and Shaft from 6mm to 8mm<br/>
 <img src='assets/FlexibleCouplingForMotor.jpg' width='300'>
 <br/>
 
