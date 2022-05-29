@@ -52,17 +52,17 @@ This is an IoT (Internet of Things) project. So it uses the MQTT protocol to com
 The App is written in Python and Kivy/KivyMD. The microcontroller is an ESP32 that is programmed c/c++.
 
 ### What do I need to build a Katzomat
-You will need a series of components, that are mostely readily available. The only thing that is kind of special is the shaft connecting the motor with the food dispenser. I will upload a 3D file soon.<br/>
+You will need a series of components, that are mostely readily available. The only thing that is kind of special is the shaft connecting the motor with the food dispenser. I will upload a 3D file soon. Cost should be around 40€.<br/>
 
-1. Some kind of Cereal Dispenser of this type<br/>
+1. Some kind of Cereal Dispenser of this type.<br/>
 <img src='assets/CerealDispenser.jpg' width='300'>
 <br/>
 
-2. ESP32-CAM and a compatible programmer<br/>
+2. ESP32-CAM and a compatible programmer.<br/>
 <img src='assets/ESP32-CAM.jpg' width='300'>
 <br/>
 
-3. 5V or 3V Relais Modul<br/>
+3. 5V or 3V Relais Modul.<br/>
 <img src='assets/RelaisModul.jpg' width='300'>
 <br/>
 
@@ -70,11 +70,11 @@ You will need a series of components, that are mostely readily available. The on
 <img src='assets/StepUpConverter.jpg' width='300'>
 <br/>
 
-5. Worm Gear Motor 24V 2rpm or something similar<br/>
+5. Worm Gear Motor 24V 2rpm or something similar.<br/>
 <img src='assets/WormGearMotor.jpg' width='300'>
 <br/>
 
-6. Flexible Coupling for the Motor and Shaft from 6mm to 8mm<br/>
+6. Flexible Coupling for the Motor and Shaft from 6mm to 8mm since the motor shaft diameter and the dispenser shaft diameter are different.<br/>
 <img src='assets/FlexibleCouplingForMotor.jpg' width='300'>
 <br/>
 
