@@ -24,23 +24,18 @@ Yes. It is written in python and kivy/kivyMD. Its possible to compile with build
 ### How to use App?
 The App tries to connect to the MQTT broker on startup. Access the main screens "Feeder", 'Timetable' and 'Log' from the Tab bar. Settings can be accessed via the the menu ribbon top left.<br/>
 Request a still image from the Katzomat or feed the pet directly.<br/>
-![Alt text](assets/feeder.png?raw=true "Feed Screen")
 <img src='assets/feeder.png' width='300'>
 <br/>
 Account Settings: If you use the app the first time or want to change user data you can change the MQTT domain, username and password here. <br/>
-![Alt text](assets/acc_settings.png?raw=true "Account Settings")
 <img src='assets/acc_settings.png' width='300'>
 <br/>
 Timetable: Overview of the feeding schedule. To setup a feeding timetable, you can select either a recurring or once occuring feeding schedule.<br/>
-![Alt text](assets/timetable.png?raw=true "Timetable")
 <img src='assets/timetable.png' width='300'>
 <br/>
 Device Settings: Here you can adjust things like turning time of the feeding motor.<br/>
-![Alt text](assets/dev_settings.png?raw=true "Device Settings")
 <img src='assets/dev_settings.png' width='300'>
 <br/>
 Log: See the feeding history and current time on the device.<br/>
-![Alt text](assets/log.png?raw=true "Log")
 <img src='assets/log.png' width='300'>
 <br/>
 ### How do I know it actually works? 
