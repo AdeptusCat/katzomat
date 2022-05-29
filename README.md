@@ -55,7 +55,7 @@ The App is written in Python and Kivy/KivyMD. The microcontroller is an ESP32 th
 You will need a series of components, that are mostely readily available. The only thing that is kind of special is the shaft connecting the motor with the food dispenser. I will upload a 3D file soon.<br/>
 
 1. ESP32-CAM and a compatible programmer<br/>
-![Alt text](assets/ESP32-CAM.png?raw=true "Log")
+![Alt text](assets/ESP32-CAM.jpg?raw=true "Log")
 <br/>
 
 2. 5V or 3V Relais Modul<br/>
