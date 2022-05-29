@@ -51,6 +51,11 @@ Yes. You would have to make some changes to how the actual mechanics work, but o
 This is an IoT (Internet of Things) project. So it uses the MQTT protocol to communicate between the clients (e.g. the feeding device and the App) to remote control a device via the Internet.<br/>
 The App is written in Python and Kivy/KivyMD. The microcontroller is an ESP32 that is programmed c/c++.
 
+### How are the components wired/build together?
+Look over this fine schematic:<br/>
+<img src='KatzomatSchematic.png' width='300'>
+<br/>
+
 ### What do I need to build a Katzomat
 You will need a series of components, that are mostely readily available. The only thing that is kind of special is the shaft connecting the motor with the food dispenser. I will upload a 3D file soon. Cost should be around 40€.<br/>
 
