@@ -59,18 +59,18 @@ You will need a series of components, that are mostely readily available. The on
 <br/>
 
 2. 5V or 3V Relais Modul<br/>
-![Alt text](assets/Relais Modul.jpg?raw=true "Log")
+![Alt text](assets/RelaisModul.jpg?raw=true "Log")
 <br/>
 
 3. DC-DC Step Up Converter: 5V to 24V<br/>
-![Alt text](assets/Step Up Converter.jpg?raw=true "Log")
+![Alt text](assets/StepUpConverter.jpg?raw=true "Log")
 <br/>
 
 4. Worm Gear Motor 24V 2rpm or something similar<br/>
-![Alt text](assets/Worm Gear Motor.jpg?raw=true "Log")
+![Alt text](assets/WormGearMotor.jpg?raw=true "Log")
 <br/>
 
 4. Flexible Coupling for the Motor and Shaft<br/>
-![Alt text](assets/Flexible Coupling For Stepper Motor.jpg?raw=true "Log")
+![Alt text](assets/FlexibleCouplingForMotor.jpg?raw=true "Log")
 <br/>
 
