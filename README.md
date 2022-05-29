@@ -53,7 +53,7 @@ The App is written in Python and Kivy/KivyMD. The microcontroller is an ESP32 th
 
 ### How are the components wired/build together?
 Look over this fine schematic:<br/>
-<img src='assets/KatzomatSchematic.png' width='600'>
+<img src='assets/KatzomatSchematic.png' width='800'>
 <br/>
 
 ### What do I need to build a Katzomat
