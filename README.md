@@ -73,4 +73,4 @@ You will need a series of components, that are mostely readily available. The on
 4. Flexible Coupling for the Motor and Shaft<br/>
 ![Alt text](assets/FlexibleCouplingForMotor.jpg?raw=true "Log")
 <br/>
-
+<img src='assets/FlexibleCouplingForMotor.jpg' width='250'>
