@@ -55,22 +55,22 @@ The App is written in Python and Kivy/KivyMD. The microcontroller is an ESP32 th
 You will need a series of components, that are mostely readily available. The only thing that is kind of special is the shaft connecting the motor with the food dispenser. I will upload a 3D file soon.<br/>
 
 1. ESP32-CAM and a compatible programmer<br/>
-![Alt text](assets/ESP32-CAM.jpg?raw=true "Log")
+<img src='assets/ESP32-CAM.jpg' width='300'>
 <br/>
 
 2. 5V or 3V Relais Modul<br/>
-![Alt text](assets/RelaisModul.jpg?raw=true "Log")
+<img src='assets/RelaisModul.jpg' width='300'>
 <br/>
 
 3. DC-DC Step Up Converter: 5V to 24V<br/>
-![Alt text](assets/StepUpConverter.jpg?raw=true "Log")
+<img src='assets/StepUpConverter.jpg' width='300'>
 <br/>
 
 4. Worm Gear Motor 24V 2rpm or something similar<br/>
-![Alt text](assets/WormGearMotor.jpg?raw=true "Log")
+<img src='assets/WormGearMotor.jpg' width='300'>
 <br/>
 
 4. Flexible Coupling for the Motor and Shaft<br/>
-![Alt text](assets/FlexibleCouplingForMotor.jpg?raw=true "Log")
+<img src='assets/FlexibleCouplingForMotor.jpg' width='300'>
 <br/>
-<img src='assets/FlexibleCouplingForMotor.jpg' width='250'>
+
