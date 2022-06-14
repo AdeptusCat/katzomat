@@ -235,9 +235,17 @@ MDScreen:
                         MDBoxLayout:
                             orientation: 'vertical'
                             size_hint_y: None
-                            height: take_picture_button.height + feed_button.height + feed_button.height
-                            spacing: 0
+                            height: take_picture_button.height + feed_button.height + feed_button.height + image_timestamp.height
+                            spacing: "12dp"
                             padding: 0
+
+                            MDLabel:
+                                id: image_timestamp
+                                text: "Date"
+                                color: app.theme_cls.primary_light
+                                halign: "center"
+                                size_hint_y: None
+                                height: self.texture_size[1]
 
                             MDFillRoundFlatButton: 
                                 id: take_picture_button
@@ -252,9 +260,6 @@ MDScreen:
                             MDBoxLayout:
                                 orientation: 'horizontal'
 
-                                Widget:
-                                    size_hint_x: 0.10
-
                                 MDLabel:
                                     text: "Flash: "
                                     halign: "right"
@@ -262,10 +267,6 @@ MDScreen:
                                     pos_hint: {"center_y":0.5}
                                     size_hint_y: None
                                     size_y: "10dp"
-
-                                Widget:
-                                    size_hint_x: None
-                                    width: "10dp"
 
                                 CheckboxLeftWidget:
                                     id: flash_checkbox
@@ -278,9 +279,6 @@ MDScreen:
                                     selected_color: app.theme_cls.primary_light
                                     unselected_color: app.theme_cls.primary_light
 
-                                Widget:
-                                    size_hint_x: None
-                                    width: "30dp"
 
                                 MDFillRoundFlatButton: 
                                     id: feed_button
@@ -290,9 +288,6 @@ MDScreen:
                                     on_press: app.show_alert_dialog()
                                     pos_hint: {"center_y":0.5, "center_x":0.5}
                                     md_bg_color: app.theme_cls.primary_dark
-
-                                Widget:
-                                    size_hint_x: 0.10
 
 
                 MDScreen:

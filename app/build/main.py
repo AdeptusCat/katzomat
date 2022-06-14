@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 import cProfile
 
@@ -566,10 +566,17 @@ class Thread(threading.Thread):
     def image0_callback(self, client, userdata, msg):
         print("got image 0")
         message = msg.payload.decode("utf-8")
+
         try:
+            data = json.loads(message)
+            timestamp = date["timestamp"]
+            dt_object = datetime.datetime.fromtimestamp(int(timestamp) - self.app.timezone_offset * 60 * 60)
+            self.app.root.ids.image_timestamp.text = str(dt_object)
+            imge_base64 = date["value"]
+
             #with open('image.txt', 'w') as f:
             #    f.write(message)
-            img = PILImage.open(BytesIO(base64.b64decode(message)))
+            img = PILImage.open(BytesIO(base64.b64decode(imge_base64)))
             rgba = img.convert("RGBA")
             rgba.save('image_0.png', 'PNG')
             self.app.root.ids.image.remove_from_cache()
