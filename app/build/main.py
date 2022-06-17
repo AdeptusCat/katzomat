@@ -743,7 +743,7 @@ class TestNavigationDrawer(MDApp):
     @mainthread
     def save_account_settings(self):
         self.settings_dict = {"domain": self.root.ids.domain.text, "user_name": self.root.ids.user_name.text, "password": self.root.ids.password.text}
-        left_status_label.text = self.root.ids.user_name.text
+        self.root.ids.left_status_label.text = self.root.ids.user_name.text
         if self.root.ids.screen_manager.current == "screen_account_settings":
             self.root.ids.screen_manager.current = "screen_feeder"
             self.root.ids.tabs.carousel.index = 0
