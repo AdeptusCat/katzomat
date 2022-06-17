@@ -132,7 +132,7 @@ MDScreen:
             orientation: 'vertical'
             pos_hint: {'top':1}
             size_hint_y: None
-            height: "170dp"
+            height: "150dp"
 
 
             MDBoxLayout:
@@ -172,7 +172,7 @@ MDScreen:
             MDBoxLayout:
                 orientation: 'horizontal'
                 size_hint_y: None
-                height: "60dp"
+                height: "40dp"
                 md_bg_color: app.theme_cls.primary_color
 
                 MDIconButton:
@@ -182,7 +182,7 @@ MDScreen:
 
                 MDLabel:
                     id: left_status_label
-                    text: "Katzomat is:"
+                    text: "Hieronymus:"
                     font_size: "18dp"
                     color: app.theme_cls.primary_light
                     halign: 'right'
@@ -275,7 +275,8 @@ MDScreen:
                                     size_hint_y: None
                                     size_y: "10dp"
                                     pos_hint: {"center_y":0.5}
-                                    active: app.on_checkbox_active
+                                    on_active: app.on_checkbox_active
+                                    active: False
                                     selected_color: app.theme_cls.primary_light
                                     unselected_color: app.theme_cls.primary_light
 

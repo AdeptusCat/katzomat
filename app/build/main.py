@@ -386,7 +386,10 @@ class Thread(threading.Thread):
 
 
     def load_timetable(self):
+        if self.app.timetable_received:
+            return
         try:
+            self.app.clear_listview()
             #self.show_connection_error_dialog()       
             # get encrypted file size
             encFileSize = stat("t.aes").st_size
@@ -397,9 +400,10 @@ class Thread(threading.Thread):
                 pyAesCrypt.decryptStream(fIn, fDec, self.encryption_key, self.bufferSize, encFileSize)
             data = json.loads(fDec.getvalue().decode())
             self.fill_timetable(data)
+            self.app.timetable_loaded = True
         except Exception as e:
             print(e)
-        self.app.timetable_loaded = True
+        
 
 
     def fill_timetable(self, data):
@@ -568,11 +572,11 @@ class Thread(threading.Thread):
         message = msg.payload.decode("utf-8")
 
         try:
-            data = json.loads(message)
-            timestamp = date["timestamp"]
+            data = json.loads(message)     
+            timestamp = data["timestamp"]
             dt_object = datetime.datetime.fromtimestamp(int(timestamp) - self.app.timezone_offset * 60 * 60)
             self.app.root.ids.image_timestamp.text = str(dt_object)
-            imge_base64 = date["value"]
+            imge_base64 = data["value"]
 
             #with open('image.txt', 'w') as f:
             #    f.write(message)
@@ -739,6 +743,7 @@ class TestNavigationDrawer(MDApp):
     @mainthread
     def save_account_settings(self):
         self.settings_dict = {"domain": self.root.ids.domain.text, "user_name": self.root.ids.user_name.text, "password": self.root.ids.password.text}
+        left_status_label.text = self.root.ids.user_name.text
         if self.root.ids.screen_manager.current == "screen_account_settings":
             self.root.ids.screen_manager.current = "screen_feeder"
             self.root.ids.tabs.carousel.index = 0
@@ -817,6 +822,9 @@ class TestNavigationDrawer(MDApp):
 
 
     def on_resume(self):
+        self.root.ids.login_button.md_bg_color=get_color_from_hex(colors["Red"]["900"])
+        self.root.ids.login_button.text="Log in"
+        self.root.ids.status_label.text="unkown"
         print("resume")
         #global client
         #if client != None:
