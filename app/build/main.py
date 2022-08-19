@@ -1,4 +1,4 @@
-__version__ = "0.1.1"
+__version__ = "0.2.1"
 
 import cProfile
 
@@ -15,6 +15,7 @@ from kivymd.uix.tab import MDTabsBase
 from kivymd.uix.behaviors import RoundedRectangularElevationBehavior
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
+from kivymd.uix.label import MDLabel
 from kivymd.uix.snackbar import BaseSnackbar
 from kivymd.uix.button import MDFlatButton
 from kivy.core.window import Window
@@ -31,6 +32,8 @@ from kivymd.uix.list import IRightBodyTouch, OneLineListItem, OneLineAvatarIconL
 from kivymd.icon_definitions import md_icons
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.button import MDFloatingActionButtonSpeedDial
+from kivy.factory import Factory
+from kivy.uix.carousel import Carousel
 
 import pyAesCrypt
 import io
@@ -61,6 +64,7 @@ from os.path import exists
 client = None
 flag_connected = 0
 image_array = []
+start_time = 0
 
 
 if platform == "android":
@@ -104,7 +108,8 @@ class DrawerList():
 class ListItemWithButton(OneLineListItem):
     timetable_icon = StringProperty("android")
 
-
+class CarouselItem(MDBoxLayout):
+    pass
 
 class ItemConfirm(OneLineAvatarIconListItem):
     divider = None
@@ -271,10 +276,11 @@ class Thread(threading.Thread):
             client.on_publish = self.on_publish
             client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/status", self.status_callback)
             client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/status/verbose", self.status_verbose_callback)
-            client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/0", self.image0_callback)
-            client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/1", self.image1_callback)
-            client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/2", self.image2_callback)
-            client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/3", self.image3_callback)
+            client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/#", self.images_callback)
+            #client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/0", self.image0_callback)
+            #client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/1", self.image1_callback)
+            #client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/2", self.image2_callback)
+            #client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/images/3", self.image3_callback)
             client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/feed", self.feed_callback)
             client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/timetable", self.timetable_callback)
             client.message_callback_add("katzomat/"+ self.app.settings_dict["user_name"] +"/settings", self.device_settings_callback)
@@ -326,7 +332,7 @@ class Thread(threading.Thread):
 
 
     def save_timetable(self):
-        current_time = int(time.time()) + 60*60*self.app.timezone_offset
+        current_time = int(time.time() + 60*60*self.app.timezone_offset)
         dic = {
             "timestamp" : current_time,
             "values" : []        
@@ -364,7 +370,7 @@ class Thread(threading.Thread):
                 timestamp_of_once = datetime.datetime.timestamp(datetime.datetime(date_arr[0], date_arr[1], date_arr[2], time_arr[0], time_arr[1], 0))
                 #timezone correction
                 timestamp_of_once += 60*60*self.app.timezone_offset
-                item_dic["timestamp"] = timestamp_of_once
+                item_dic["timestamp"] = int(timestamp_of_once)
             else:
                 time_arr = arr[index].split(":")
                 item_dic["hour"] = int(time_arr.pop(0))
@@ -448,7 +454,7 @@ class Thread(threading.Thread):
                 item_text += f"{hour:02d}" 
                 item_text += ":"
                 item_text += f"{minute:02d}" 
-                if value["timestamp"] < int(time.time()) + self.app.timezone_offset * 60 * 60:
+                if value["timestamp"] < int(time.time() + self.app.timezone_offset * 60 * 60):
                     continue
             else:
                 hour = value["hour"]
@@ -464,10 +470,11 @@ class Thread(threading.Thread):
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
         client.subscribe("home/kitchen/lights")
-        client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/0")
-        client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/1")
-        client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/2")
-        client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/3")
+        client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/#")
+        #client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/0")
+        #client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/1")
+        #client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/2")
+        #client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/images/3")
         client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/status/verbose")
         client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/status")
         client.subscribe("katzomat/"+ self.app.settings_dict["user_name"] +"/feed")
@@ -481,6 +488,7 @@ class Thread(threading.Thread):
             self.app.root.ids.login_button.text="connected"
             if self.app.root.ids.screen_manager.current == "screen_account_settings":
                 self.app.switch_screen("screen_overview")
+            self.app.refresh_status_verbose()
         
         # test
         #alarm = int(time.time()) + 20 #+ 7200
@@ -514,7 +522,8 @@ class Thread(threading.Thread):
         #self.show_snackbar("received")
         message = msg.payload.decode("utf-8")
         topic = msg.topic
-        print("message received " ,str(msg.payload.decode("utf-8")))
+        #print("message received " ,str(msg.payload.decode("utf-8")))
+        print("message received")
         print("message topic=",msg.topic)
         print("message qos=",msg.qos)
         print("message retain flag=",msg.retain)
@@ -541,7 +550,7 @@ class Thread(threading.Thread):
         self.app.device_status = message
         if message == "online":
             self.app.root.ids.status_label.text = message
-            self.app.refresh_status_verbose()
+            #self.app.refresh_status_verbose()
             #self.root.ids.status_label.color = get_color_from_hex("#00FF00")
         elif message == "offline":
             self.app.root.ids.status_label.text = message
@@ -566,8 +575,77 @@ class Thread(threading.Thread):
             i += 1
 
 
+    date_array = []
+    def images_callback(self, client, userdata, msg):
+        #print(client)
+        print("got image")
+        message = msg.payload.decode("utf-8")
+        try:
+            data = json.loads(message)
+            timestamp = data["timestamp"]
+            #print(self.date_array)
+            #print(timestamp)
+            if int(timestamp) in self.date_array:
+                print("already in date array")
+                return
+            
+            self.date_array.append(int(timestamp))
+            imge_base64 = data["value"]
+
+            #with open('image.txt', 'w') as f:
+            #    f.write(message)
+            img = PILImage.open(BytesIO(base64.b64decode(imge_base64)))
+            rgba = img.convert("RGBA")
+            rgba.save('images/cat/' + str(int(timestamp)) + '.png', 'PNG')
+
+#            if self.start_time < time.time() + 1.0:
+#                self.start_time = time.time()
+            
+            
+            self.add_image('images/cat/' + str(int(timestamp)) + '.png', int(timestamp))
+        except Exception as e:
+            print(e)
+
+    @mainthread
+    def add_image(self, img_name, timestamp, loading = False):
+        dt_object = datetime.datetime.fromtimestamp(int(timestamp))
+        label = MDLabel(text = str(dt_object), color = self.app.theme_cls.primary_light, halign = "center", size_hint_y = None)
+        label.height = label.texture_size[1]
+
+        image = Factory.AsyncImage(source=img_name, allow_stretch=True, pos_hint = {"center_x": 0.5, "center_y": 0.5})
+
+        box = MDBoxLayout(orientation = 'vertical', spacing = '12dp', padding = '12dp')
+        box.add_widget(image)
+        box.add_widget(label)
+
+        
+
+        self.app.root.ids.image_carousel.add_widget(box)
+
+
+        if not loading:
+
+            slides = self.app.root.ids.image_carousel.slides.copy()
+            self.app.root.ids.image_carousel.clear_widgets()
+            timestamp_array = []
+            slides_dict = {}
+            for slide in slides:
+                
+                format = "%Y-%m-%d %H:%M:%S"
+                dt_object = datetime.datetime.strptime(slide.children[0].text, format)
+                timestamp = datetime.datetime.timestamp(dt_object)
+                timestamp_array.append(timestamp)
+                slides_dict[str(timestamp)] = slide
+                
+            while not len(timestamp_array) == 0:
+                smol = min(timestamp_array)
+                self.app.root.ids.image_carousel.add_widget(slides_dict[str(smol)])
+                timestamp_array.remove(smol)
+
+        self.app.root.ids.image_carousel.load_slide(self.app.root.ids.image_carousel.slides[-1])
 
     def image0_callback(self, client, userdata, msg):
+        return
         print("got image 0")
         message = msg.payload.decode("utf-8")
 
@@ -785,6 +863,7 @@ class TestNavigationDrawer(MDApp):
         #self.profile = cProfile.Profile()
         #self.profile.enable()
 
+
         self.thread_node = Thread(self) # Create a thread
         self.thread_node.daemon = True
         self.thread_node.start() # Start the thread 
@@ -794,17 +873,34 @@ class TestNavigationDrawer(MDApp):
         self.thread_node.get_timezone_offset()
         self.thread_node.get_locale_language()
         self.change_languange(self.locale_language[0])
+
+        found_images = False
+        for dirpath, dirnames, files in os.walk('images/cat/'):
+            for image in files:
+                timestamp = image.split('.')[0]
+                self.thread_node.date_array.append(int(timestamp))
+                found_images = True
+        date_array_copy = self.thread_node.date_array.copy()
+        while len(date_array_copy) > 16:
+            timestamp = min(date_array_copy)
+            os.remove('images/cat/' + str(timestamp) + '.png')
+            date_array_copy.remove(timestamp)
+            self.thread_node.date_array.remove(timestamp)
+        while not len(date_array_copy) == 0:
+            timestamp = min(date_array_copy)
+            date_array_copy.remove(timestamp)
+            self.thread_node.add_image('images/cat/' + str(timestamp) + '.png', timestamp, True)
+
+        #if exists('image_0.png'):
+        #    self.root.ids.image.remove_from_cache()
+        #    self.root.ids.image.source = 'image_0.png'
+        #    self.root.ids.image.reload() 
+        if found_images == False:
+            #self.root.ids.image.remove_from_cache()
+            self.thread_node.add_image('images/logo/feeder_logo.jpg', 0, True) #int(datetime.datetime.timestamp(datetime.datetime.now()))
+
         
         self.thread_node.connect_to_broker()
-
-        if exists('image_0.png'):
-            self.root.ids.image.remove_from_cache()
-            self.root.ids.image.source = 'image_0.png'
-            self.root.ids.image.reload() 
-        else:
-            self.root.ids.image.remove_from_cache()
-            self.root.ids.image.source = 'images/feeder_logo.jpg'
-            self.root.ids.image.reload() 
 
         self.root.ids.tabs.add_widget(Tab(title=self.feed_screen))       
         self.root.ids.tabs.add_widget(Tab(title=self.timetable_screen))
@@ -822,10 +918,14 @@ class TestNavigationDrawer(MDApp):
 
 
     def on_resume(self):
-        self.root.ids.login_button.md_bg_color=get_color_from_hex(colors["Red"]["900"])
-        self.root.ids.login_button.text="Log in"
-        self.root.ids.status_label.text="unkown"
-        print("resume")
+        try:
+            self.root.ids.login_button.md_bg_color=get_color_from_hex(colors["Red"]["900"])
+            self.root.ids.login_button.text="Log in"
+            self.root.ids.status_label.text="unkown"
+            print("resume")
+        except Exception as e:
+            print(e)
+            print("Failed to resume properly.")
         #global client
         #if client != None:
         #    client.loop_start()
@@ -1026,11 +1126,13 @@ class TestNavigationDrawer(MDApp):
         client.publish("katzomat/"+ self.settings_dict["user_name"] +"/images/take",str(flash),qos=1,retain=False)
 
     def refresh_status_verbose(self):
-        if self.device_status == "online":
-            print("request status verbose")
-            client.publish("katzomat/"+ self.settings_dict["user_name"] +"/status/verbose/send","refresh",qos=1,retain=False)
-        else:
-            self.show_snackbar(self.device_status)
+        print("request status verbose")
+        client.publish("katzomat/"+ self.settings_dict["user_name"] +"/status/verbose/send","refresh",qos=1,retain=False)
+        #if self.device_status == "online":
+        #    print("request status verbose")
+        #    client.publish("katzomat/"+ self.settings_dict["user_name"] +"/status/verbose/send","refresh",qos=1,retain=False)
+        #else:
+        #    self.show_snackbar(self.device_status)
 
     def feed(self):
         print("feed")

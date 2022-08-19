@@ -100,6 +100,7 @@
         pos_hint: {'center_y': .5}
 
 
+
 <ListItemWithButton>:
     id: timetable_item
 
@@ -222,30 +223,33 @@ MDScreen:
                         spacing: "12dp"
                         padding: "12dp"
 
-                        AsyncImage:
-                            id: image
-                            size: self.texture_size
-                            allow_stretch: True
-                            nocache: False
-                            anim_delay: -1
-                            anim_loop: 0
-                            size_hint:  0.95, 0.95
-                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                        Carousel:
+                            id: image_carousel
+
+#                        AsyncImage:
+#                            id: image
+#                            size: self.texture_size
+#                            allow_stretch: True
+#                            nocache: False
+#                            anim_delay: -1
+#                            anim_loop: 0
+#                            size_hint:  0.95, 0.95
+#                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
                         MDBoxLayout:
                             orientation: 'vertical'
                             size_hint_y: None
-                            height: take_picture_button.height + feed_button.height + feed_button.height + image_timestamp.height
+                            height: take_picture_button.height + feed_button.height + feed_button.height #+ image_timestamp.height
                             spacing: "12dp"
                             padding: 0
 
-                            MDLabel:
-                                id: image_timestamp
-                                text: "Date"
-                                color: app.theme_cls.primary_light
-                                halign: "center"
-                                size_hint_y: None
-                                height: self.texture_size[1]
+#                            MDLabel:
+#                                id: image_timestamp
+#                                text: "Date"
+#                                color: app.theme_cls.primary_light
+#                                halign: "center"
+#                                size_hint_y: None
+#                                height: self.texture_size[1]
 
                             MDFillRoundFlatButton: 
                                 id: take_picture_button
