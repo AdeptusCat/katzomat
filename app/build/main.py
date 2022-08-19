@@ -608,7 +608,7 @@ class Thread(threading.Thread):
 
     @mainthread
     def add_image(self, img_name, timestamp, loading = False):
-        dt_object = datetime.datetime.fromtimestamp(int(timestamp))
+        dt_object = datetime.datetime.fromtimestamp(int(timestamp) - self.app.timezone_offset * 60 * 60)
         label = MDLabel(text = str(dt_object), color = self.app.theme_cls.primary_light, halign = "center", size_hint_y = None)
         label.height = label.texture_size[1]
 
@@ -633,7 +633,7 @@ class Thread(threading.Thread):
                 
                 format = "%Y-%m-%d %H:%M:%S"
                 dt_object = datetime.datetime.strptime(slide.children[0].text, format)
-                timestamp = datetime.datetime.timestamp(dt_object)
+                timestamp = datetime.datetime.timestamp(dt_object) + self.app.timezone_offset * 60 * 60
                 timestamp_array.append(timestamp)
                 slides_dict[str(timestamp)] = slide
                 
