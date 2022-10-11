@@ -260,6 +260,7 @@ void readFile(fs::FS &fs, const char * path) {
     last_unix_time_array[i] = '\0';
     sscanf(last_unix_time_array, "%d", &last_unix_time);
     setTime(last_unix_time);
+    digitalClockDisplay();
   }
   if (strcmp("/certificate.txt", path) == 0)
   {
@@ -281,7 +282,11 @@ void writeFile(fs::FS & fs, const char * path, const char * message) {
     Serial.println("Failed to open file for writing");
     return;
   }
-
+  
+if (strcmp("/device_settings.txt", path) == 0)
+  {
+    file.print("4450\n");
+  }
   if (strcmp("/general_settings.txt", path) == 0)
   {
     file.print("### timezone ###\n");

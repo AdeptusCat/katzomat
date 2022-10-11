@@ -1,5 +1,6 @@
 .buildozer
 bin
+images/cat
 *.aes
 image_0.png
 __pycache__

@@ -4,24 +4,29 @@ const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 byte alarm_nr = 0;
 
+
 void setupTime()
 {
   Udp.begin(localPort);
   //  setSyncProvider(getNtpTime);
   setSyncProvider(getDstCorrectedTime);
   setSyncInterval(300);
-  
+
   Alarm.delay(0);
 
   if (WiFi.status() != WL_CONNECTED)
   {
     setupSDCard();
     readFile(SD_MMC, "/time.txt");
+    endSDCard();
     digitalClockDisplay();
   }
   else
   {
-    saveTime();
+    if (got_time_after_start == true)
+    {
+      saveTime();
+    }
   }
 }
 
@@ -107,6 +112,10 @@ void add_alarm_once(unsigned int timestamp)
 
 time_t getNtpTime()
 {
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    return 0;
+  }
   IPAddress ntpServerIP; // NTP server's ip address
 
   while (Udp.parsePacket() > 0) ; // discard any previously received packets
@@ -122,6 +131,10 @@ time_t getNtpTime()
     int size = Udp.parsePacket();
     if (size >= NTP_PACKET_SIZE) {
       Serial.println("Receive NTP Response");
+      if (got_time_after_start == false)
+      {
+        got_time_after_start = true;
+      }
       Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
       unsigned long secsSince1900;
       // convert four bytes starting at location 40 to a long integer
@@ -133,8 +146,14 @@ time_t getNtpTime()
     }
   }
   Serial.println("No NTP Response :-(");
+  // retry time sync if not successful after system start
+  if (got_time_after_start == false)
+  {
+    time_t t = getDstCorrectedTime();
+    setTime(t);
+  }
 
-  return 0; // return current time
+  return 0;
 }
 
 
@@ -178,7 +197,7 @@ byte dstOffset (byte d, byte m, unsigned int y, byte h) {
 }
 
 // send an NTP request to the time server at the given address
-void sendNTPpacket(IPAddress &address)
+void sendNTPpacket(IPAddress & address)
 {
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
