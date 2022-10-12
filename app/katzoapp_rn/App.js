@@ -1,6 +1,6 @@
 import Paho from 'paho-mqtt'; //https://www.eclipse.org/paho/files/jsdoc/index.html
 
-import {useState, useEffect} from 'react';
+import {useState, useContext, useEffect} from 'react';
 //import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
@@ -32,10 +32,13 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 
 import ImageSlider from './ImageSlider';
 
-const Tab = createBottomTabNavigator();
-export const PageContext = React.createContext();
-export const SettingsContext = React.createContext();
+import EncryptedStorage from 'react-native-encrypted-storage';
 
+//import {PageContext, PageContextProvider} from './context/pageContext';
+
+const Tab = createBottomTabNavigator();
+export const PageContext = React.createContext(null);
+export const SettingsContext = React.createContext();
 
 client = new Paho.Client(
   'adeptuscat.ddns.net',
@@ -57,13 +60,25 @@ var dotKeys = [];
 var once = false;
 
 export default function App() {
+  const [connected, setConnected] = useState(false);
+  const [name, setName] = useState('katz');
+
+  return (
+    <PageContext.Provider value={[name, setName]}>
+      <Page />
+    </PageContext.Provider>
+  );
+}
+
+const Page = () => {
   var statusString = 'Katzomat Status:';
   const [value, setValue] = useState(0);
   const [status, setStatus] = useState(`${statusString} unkown`);
   const [connected, setConnected] = useState(false);
-  const [name, setName] = useState('katz');
+  const [name, setName] = React.useContext(PageContext);
   const [password, setPassword] = useState('katz!');
   const [domain, setDomain] = useState('adeptuscat.ddns.net');
+  const [rotationTime, setRotationTime] = useState(3000);
   const [dir, setDir] = useState(`katzomat/${name}`);
   const [img, setImg] = useState('Base64ImgHere');
   const [imgs, setImgs] = useState([
@@ -74,6 +89,30 @@ export default function App() {
     },
   ]);
   const [timetable, setTimetable] = useState([]);
+  const [statusVerbose, setStatusVerbose] = useState({});
+
+  function formatTime(timestamp) {
+    var date = new Date(timestamp * 1000);
+    var year = date.getFullYear();
+    var month = date.getMonth();
+    var day = date.getDay();
+    var hours = date.getHours();
+    var minutes = '0' + date.getMinutes();
+    var seconds = '0' + date.getSeconds();
+    var formattedTime =
+      day +
+      '.' +
+      month +
+      '.' +
+      year +
+      ' ' +
+      hours +
+      ':' +
+      minutes.substr(-2) +
+      ':' +
+      seconds.substr(-2);
+    return formattedTime;
+  }
 
   function onMessage(message) {
     if (message.destinationName === `katzomat/${name}/status`) {
@@ -81,6 +120,19 @@ export default function App() {
     }
     if (message.destinationName === `katzomat/${name}/status/verbose`) {
       //console.log(message.payloadString);
+      var obj = JSON.parse(message.payloadString);
+      setStatusVerbose(obj);
+      console.log(message.payloadString);
+
+      var dict = {
+        time: '',
+        history: [],
+      };
+      dict.time = formatTime(obj.time);
+      for (let i = 0; i < obj.history.length; i++) {
+        dict.history.push(formatTime(obj.history[i]));
+      }
+      console.log(dict);
     }
     const str = `katzomat/${name}/images`;
     const re = message.destinationName.match(str);
@@ -241,6 +293,8 @@ export default function App() {
   }
 
   function connect() {
+    setName('whut');
+    console.log('what', name);
     client.connect({
       useSSL: true,
       userName: name,
@@ -265,7 +319,7 @@ export default function App() {
     });
   }
 
-  const alert = flag => {
+  const alert = (flag, data) => {
     if (connected === false) {
       connectionAlert();
       return;
@@ -276,6 +330,8 @@ export default function App() {
     ) {
       offlineAlert(flag);
       return;
+    } else {
+      command(flag, data);
     }
   };
 
@@ -293,7 +349,8 @@ export default function App() {
       ],
     );
 
-  const command = flag => {
+  const command = (flag, data) => {
+    console.log(flag);
     switch (flag) {
       case 'refresh':
         refresh();
@@ -302,7 +359,7 @@ export default function App() {
         feedAlert();
         break;
       case 'addTimetable':
-        addTimetable();
+        addTimetable(data);
         break;
     }
   };
@@ -328,9 +385,12 @@ export default function App() {
       {text: 'OK', onPress: () => connect()},
     ]);
 
-  function addTimetable() {
+  function addTimetable(data) {
     console.log('add timetable');
-    setTimetable([{text: 'test'}]);
+    var arr = timetable;
+    arr.push({text: 'asdf', recurring: true});
+    console.log(arr);
+    setTimetable(arr);
   }
 
   function feed() {
@@ -347,6 +407,86 @@ export default function App() {
     console.log('sent');
   }
 
+  async function saveAccountSettings(settings) {
+    console.log(settings);
+    try {
+      await EncryptedStorage.setItem(
+        'accountSettings',
+        JSON.stringify({
+          settings,
+        }),
+      );
+      console.log('saveAccountSettings');
+      // Congrats! You've just stored your first value!
+    } catch (error) {
+      // There was an error on the native side
+      console.log(error);
+    }
+  }
+
+  async function loadAccountSettings() {
+    try {
+      const session = await EncryptedStorage.getItem('accountSettings');
+
+      if (session !== undefined) {
+        console.log('wut');
+        console.log(session);
+        //setDomain(session.domain);
+        //setName(session.name);
+        //setPassword(session.password);
+        // Congrats! You've just retrieved your first value!
+      }
+    } catch (error) {
+      console.log(error);
+      // There was an error on the native side
+    }
+  }
+
+  async function saveDeviceSettings(rotationTime) {
+    console.log('saveDeviceSettings');
+
+    if (connected === false) {
+      connectionAlert();
+      return;
+    } else {
+      const message = new Paho.Message(rotationTime);
+      message.destinationName = `katzomat/${name}/settings`;
+      client.send(message);
+    }
+
+    try {
+      await EncryptedStorage.setItem(
+        'deviceSettings',
+        JSON.stringify({
+          rotationTime,
+        }),
+      );
+      console.log('saveDeviceSettings');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function loadDeviceSettings() {
+    try {
+      const session = await EncryptedStorage.getItem('deviceSettings');
+
+      if (session !== undefined) {
+        console.log(session);
+        setRotationTime(session);
+        // Congrats! You've just retrieved your first value!
+      }
+    } catch (error) {
+      console.log(error);
+      // There was an error on the native side
+    }
+  }
+
+  React.useEffect(() => {
+    loadAccountSettings();
+    loadDeviceSettings();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <PageContext.Provider value={[connected, setConnected, name, setName]}>
@@ -356,6 +496,13 @@ export default function App() {
             screenOptions={{
               tabBarActiveTintColor: 'tomato',
               tabBarInactiveTintColor: 'blue',
+              headerTintColor: 'white',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+              headerStyle: {
+                backgroundColor: 'red',
+              },
             }}>
             <Tab.Screen
               name="HomeTab"
@@ -410,6 +557,9 @@ export default function App() {
                 <SettingsTabScreen
                   {...props}
                   connect={connect}
+                  saveAccountSettings={saveAccountSettings}
+                  loadAccountSettings={loadAccountSettings}
+                  saveDeviceSettings={saveDeviceSettings}
                   timetable={timetable}
                   alert={alert}
                 />
@@ -420,7 +570,7 @@ export default function App() {
       </PageContext.Provider>
     </SafeAreaProvider>
   );
-}
+};
 
 interface ChildProps {
   parentFunction: Function;
@@ -437,10 +587,13 @@ function HomeTabScreen(route) {
     route.navigation.setOptions({
       //headerTitle: `Count is ${status}`, //use this to make the title changeable
       headerRight: () => (
-        <Button
-          title={connected ? 'Disconnect' : 'Connect'}
-          onPress={() => route.connect()}
-        />
+        <View style={styles.connectButton}>
+          <Button
+            title={connected ? 'Connected' : 'Log In'}
+            color="black"
+            onPress={() => route.connect()}
+          />
+        </View>
       ),
     });
   }, [route, route.navigation, connected]); // ← This `connected` here ensures that the header state is updated
@@ -471,7 +624,7 @@ function HomeTabScreen(route) {
   }
 
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <View style={styles.page}>
       <SafeAreaView style={styles.container}>
         <View style={styles.wrap}>
           <ScrollView
@@ -508,10 +661,10 @@ function HomeTabScreen(route) {
         <View style={styles.wrapDate}>
           <Text>{route.imgs[imgActive].date}</Text>
         </View>
-        <View>
+        <View style={styles.button}>
           <Button title={'Feed The Cat'} onPress={() => route.alert('feed')} />
         </View>
-        <View>
+        <View style={styles.button}>
           <Button
             title={'Refresh Image'}
             onPress={() => route.alert('refresh')}
@@ -524,7 +677,7 @@ function HomeTabScreen(route) {
 
 function TimeTabScreen(route) {
   const [connected, setConnected] = React.useContext(PageContext);
-  const [timetable, setTimetable] = React.useContext(PageContext);
+  const [timetable, setTimetable] = useState([]);
   const [imgActive, setimgActive] = useState(0);
   const [imgsLength, setimgsLength] = useState(0);
   const [modalWeekdaysVisible, setModalWeekdaysVisible] = useState(false);
@@ -539,9 +692,16 @@ function TimeTabScreen(route) {
   var mode = '';
 
   const onDateChange = (event, selectedDate) => {
+    console.log(mode);
     console.log(selectedDate);
     const currentDate = selectedDate;
-    setDate(currentDate);
+    if (mode === 'date') {
+      setDate(currentDate);
+    }
+    if (mode === 'time') {
+      setTime(currentDate);
+    }
+    //setDate(currentDate);
 
     if (showTimePickerAfter) {
       showTimePickerAfter = false;
@@ -573,10 +733,13 @@ function TimeTabScreen(route) {
     route.navigation.setOptions({
       //headerTitle: `Count is ${status}`, //use this to make the title changeable
       headerRight: () => (
-        <Button
-          title={connected ? 'Disconnect' : 'Connect'}
-          onPress={() => route.connect()}
-        />
+        <View style={styles.connectButton}>
+          <Button
+            title={connected ? 'Connected' : 'Log In'}
+            color="black"
+            onPress={() => route.connect()}
+          />
+        </View>
       ),
     });
   }, [route, route.navigation, connected]); // ← This `connected` here ensures that the header state is updated
@@ -618,12 +781,12 @@ function TimeTabScreen(route) {
           text: 'Recurring',
           onPress: () => setModalWeekdaysVisible(!modalWeekdaysVisible),
         },
-        {text: 'Onetime Only', onPress: () => showTimepicker(true)},
+        {text: 'Onetime Only', onPress: () => showDatepicker(true)},
       ],
     );
 
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <View style={styles.page}>
       <SafeAreaView style={styles.container}>
         <View style={styles.wrap}>
           <ScrollView
@@ -634,7 +797,7 @@ function TimeTabScreen(route) {
             pagingEnabeled
             vertical
             style={styles.wrap}>
-            {route.timetable.map((e, index) => {
+            {timetable.map((e, index) => {
               console.log('view:', e);
               return (
                 <View key={index}>
@@ -675,7 +838,7 @@ function TimeTabScreen(route) {
                 <Pressable
                   style={[styles.button, styles.buttonClose]}
                   onPress={() => showTimepicker()}>
-                  <Text>{date.toLocaleTimeString()}</Text>
+                  <Text>{time.toLocaleTimeString()}</Text>
                 </Pressable>
 
                 <Pressable
@@ -687,9 +850,16 @@ function TimeTabScreen(route) {
                 </Pressable>
                 <Pressable
                   style={[styles.button, styles.buttonClose]}
-                  onPress={() =>
-                    setModalWeekdaysVisible(!modalWeekdaysVisible)
-                  }>
+                  onPress={() => {
+                    setModalWeekdaysVisible(!modalWeekdaysVisible);
+                    //route.alert('addTimetable', {date: date, time: time});
+                    var arr = [];
+                    arr = timetable;
+                    console.log(arr);
+                    arr.push({text: 'asdf', recurring: true});
+                    console.log(arr);
+                    setTimetable(arr);
+                  }}>
                   <Text style={styles.textStyle}>Ok</Text>
                 </Pressable>
               </View>
@@ -702,7 +872,7 @@ function TimeTabScreen(route) {
               onPress={() => timetableAlert()}
             />
             <Text>selected: {date.toDateString()}</Text>
-            <Text>selected: {date.toLocaleTimeString()}</Text>
+            <Text>selected: {time.toLocaleTimeString()}</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -713,56 +883,128 @@ function TimeTabScreen(route) {
 function SettingsTabScreen(route, navigation) {
   const test = React.useContext(PageContext);
   const [connected, setConnected] = React.useContext(PageContext);
-  const [name, setName] = React.useContext(PageContext);
-  const [password, setPassword] = React.useContext(PageContext);
-  const [domain, setDomain] = React.useContext(PageContext);
+  const [name, setName] = useState('1');
+  const [password, setPassword] = useState('2');
+  const [domain, setDomain] = useState('3');
+  const [rotationTime, setRotationTime] = useState('3500');
+  const [modalLogVisible, setModalLogVisible] = useState(false);
+  var log = {
+    time: 1661362594,
+    history: [
+      1655735536, 1655735520, 1655731133, 1655731121, 1655730389, 1655730048,
+      1655729820, 1655728624, 1655728006, 1655726862, 1655726756, 1655726656,
+      1655726623, 0,
+    ],
+  };
   //console.log(status);
   React.useEffect(() => {
     route.navigation.setOptions({
-      headerTintColor: 'white',
-      headerTitleStyle: {
-        fontWeight: 'bold',
-      },
-      headerStyle: {
-        backgroundColor: 'red',
-      },
       headerRight: () => (
-        <Button
-          title={connected ? 'Disconnect' : 'Connect'}
-          color="black"
-          onPress={() => route.connect()}
-        />
+        <View style={styles.connectButton}>
+          <Button
+            title={connected ? 'Connected' : 'Log In'}
+            color="black"
+            onPress={() => route.connect()}
+          />
+        </View>
       ),
     });
   }, [route, route.navigation, connected]);
 
+  function onTextChanged(value) {
+    // code to remove non-numeric characters from text
+    //this.setState({number: value.replace(/[- #*;,.<>\{\}\[\]\\\/]/gi, '')});
+    setRotationTime(value.replace(/[^0-9]/g, ''));
+  }
+
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <View style={styles.page}>
       <Text>Settings Tab! </Text>
       <Text>Account Settings: </Text>
       <TextInput
+        style={styles.input}
+        maxLength={20}
         onChangeText={setDomain}
         value={domain}
-        placeholder="Katzapp Domain here"
+        placeholder="Katzapp Domain"
         keyboardType="url"
       />
       <TextInput
-        //onChangeText={setName}
-        value={test.name}
-        placeholder="Account Name here"
+        style={styles.input}
+        maxLength={20}
+        onChangeText={setName}
+        value={name}
+        placeholder="Account Name"
         keyboardType="default"
       />
       <TextInput
+        style={styles.input}
+        maxLength={20}
         onChangeText={setPassword}
         value={password}
-        placeholder="Account password here"
+        placeholder="Account password"
         keyboardType="default"
       />
       <Button
-        title={connected ? 'Disconnect' : 'Connect'}
+        title="Save"
         color="black"
-        onPress={() => route.connect()}
+        onPress={() =>
+          route.saveAccountSettings({
+            domain: domain,
+            name: name,
+            password: password,
+          })
+        }
       />
+      <Text>Device Settings: </Text>
+      <Text>Rotation Time in Milliseconds: </Text>
+      <TextInput
+        style={styles.input}
+        maxLength={10}
+        //onChangeText={setRotationTime}
+        onChangeText={value => onTextChanged(value)}
+        value={rotationTime}
+        placeholder="Rotation Time here"
+        keyboardType="default"
+      />
+      <Button
+        title="Save"
+        color="black"
+        onPress={() => route.saveDeviceSettings(rotationTime)}
+      />
+      <View style={styles.button}>
+        <Button
+          title="Log"
+          color="black"
+          onPress={() => setModalLogVisible(!modalLogVisible)}
+        />
+      </View>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalLogVisible}
+        onRequestClose={() => {
+          setModalLogVisible(!modalLogVisible);
+        }}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <View style={styles.centeredView}>
+              <Text>Katzomat time: {log.time}</Text>
+              <Text>The Cat was fed on the following dates:</Text>
+              {log.history.map(l => (
+                <View key={l}>
+                  <Text>{l}</Text>
+                </View>
+              ))}
+              <Button
+                title="Close"
+                color="black"
+                onPress={() => setModalLogVisible(!modalLogVisible)}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -823,9 +1065,9 @@ const styles = StyleSheet.create({
   },
   modalView: {
     margin: 20,
-    backgroundColor: 'white',
+    backgroundColor: 'blue',
     borderRadius: 20,
-    padding: 35,
+    padding: 50,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -835,5 +1077,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  page: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#6ED4C8',
+    padding: 30,
+  },
+  header: {
+    headerTintColor: 'black',
+    headerTitleStyle: {
+      fontWeight: 'bold',
+    },
+    headerStyle: {
+      backgroundColor: 'red',
+      paddingHorizontal: 15,
+    },
+  },
+  connectButton: {
+    margin: 5,
+  },
+  button: {
+    margin: 10,
+    //padding: 20,
+  },
+  input: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    height: 30,
+    margin: 6,
+    borderWidth: 1,
+    padding: 5,
   },
 });
