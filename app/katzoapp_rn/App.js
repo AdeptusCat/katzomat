@@ -64,7 +64,7 @@ export default function App() {
   const [name, setName] = useState('katz');
 
   return (
-    <PageContext.Provider value={[name, setName]}>
+    <PageContext.Provider value={{connected, setConnected, name, setName}}>
       <Page />
     </PageContext.Provider>
   );
@@ -74,12 +74,13 @@ const Page = () => {
   var statusString = 'Katzomat Status:';
   const [value, setValue] = useState(0);
   const [status, setStatus] = useState(`${statusString} unkown`);
-  const [connected, setConnected] = useState(false);
-  const [name, setName] = React.useContext(PageContext);
+  //const {connected, setConnected} = useState(PageContext);
+  //const {name, setName} = React.useContext(PageContext);
+  const context = React.useContext(PageContext);
   const [password, setPassword] = useState('katz!');
   const [domain, setDomain] = useState('adeptuscat.ddns.net');
   const [rotationTime, setRotationTime] = useState(3000);
-  const [dir, setDir] = useState(`katzomat/${name}`);
+  const [dir, setDir] = useState(`katzomat/${context.name}`);
   const [img, setImg] = useState('Base64ImgHere');
   const [imgs, setImgs] = useState([
     {
@@ -115,10 +116,10 @@ const Page = () => {
   }
 
   function onMessage(message) {
-    if (message.destinationName === `katzomat/${name}/status`) {
+    if (message.destinationName === `katzomat/${context.name}/status`) {
       setStatus(`${statusString} ${message.payloadString}`);
     }
-    if (message.destinationName === `katzomat/${name}/status/verbose`) {
+    if (message.destinationName === `katzomat/${context.name}/status/verbose`) {
       //console.log(message.payloadString);
       var obj = JSON.parse(message.payloadString);
       setStatusVerbose(obj);
@@ -134,10 +135,10 @@ const Page = () => {
       }
       console.log(dict);
     }
-    const str = `katzomat/${name}/images`;
+    const str = `katzomat/${context.name}/images`;
     const re = message.destinationName.match(str);
     if (re != null) {
-      if (message.destinationName === `katzomat/${name}/images/take`) {
+      if (message.destinationName === `katzomat/${context.name}/images/take`) {
         return;
       }
       var obj = JSON.parse(message.payloadString);
@@ -195,16 +196,16 @@ const Page = () => {
       //};
       //imgs.append(dict);
     }
-    if (message.destinationName === `katzomat/${name}/feed`) {
+    if (message.destinationName === `katzomat/${context.name}/feed`) {
       //console.log(message.payloadString);
     }
-    if (message.destinationName === `katzomat/${name}/timetable`) {
+    if (message.destinationName === `katzomat/${context.name}/timetable`) {
       console.log(message.payloadString);
       var obj = JSON.parse(message.payloadString);
       var values = obj.values;
       parseTimetable(values);
     }
-    if (message.destinationName === `katzomat/${name}/settings`) {
+    if (message.destinationName === `katzomat/${context.name}/settings`) {
       //console.log(message.payloadString);
     }
   }
@@ -284,31 +285,34 @@ const Page = () => {
 
   function onConnected(msg) {
     console.log('Connected!!!!');
-    setConnected(true);
+    context.setConnected(true);
   }
 
   function onConnectionLost() {
-    setConnected(false);
+    context.setConnected(false);
     console.log('lost Connection!');
   }
 
   function connect() {
-    setName('whut');
-    console.log('what', name);
+    console.log(context);
+    console.log(context.setName);
+    context.setName('whut');
+    console.log('dfasdf');
+    console.log('what', context.name);
     client.connect({
       useSSL: true,
-      userName: name,
+      userName: context.name,
       password: 'katz!',
       keepAliveInterval: 2,
       cleanSession: true,
       onSuccess: () => {
         console.log('Connected!');
-        client.subscribe(`katzomat/${name}/status`);
-        client.subscribe(`katzomat/${name}/status/verbose`);
-        client.subscribe(`katzomat/${name}/images/#`);
-        client.subscribe(`katzomat/${name}/feed`);
-        client.subscribe(`katzomat/${name}/timetable`);
-        client.subscribe(`katzomat/${name}/settings`);
+        client.subscribe(`katzomat/${context.name}/status`);
+        client.subscribe(`katzomat/${context.name}/status/verbose`);
+        client.subscribe(`katzomat/${context.name}/images/#`);
+        client.subscribe(`katzomat/${context.name}/feed`);
+        client.subscribe(`katzomat/${context.name}/timetable`);
+        client.subscribe(`katzomat/${context.name}/settings`);
         client.onMessageArrived = onMessage;
         client.onConnected = onConnected;
         client.onConnectionLost = onConnectionLost;
@@ -320,7 +324,7 @@ const Page = () => {
   }
 
   const alert = (flag, data) => {
-    if (connected === false) {
+    if (context.connected === false) {
       connectionAlert();
       return;
     }
@@ -395,14 +399,14 @@ const Page = () => {
 
   function feed() {
     const message = new Paho.Message('0');
-    message.destinationName = `katzomat/${name}/feed`;
+    message.destinationName = `katzomat/${context.name}/feed`;
     client.send(message);
     console.log('sent');
   }
 
   function refresh() {
     const message = new Paho.Message('0');
-    message.destinationName = `katzomat/${name}/images/take`;
+    message.destinationName = `katzomat/${context.name}/images/take`;
     client.send(message);
     console.log('sent');
   }
@@ -445,12 +449,12 @@ const Page = () => {
   async function saveDeviceSettings(rotationTime) {
     console.log('saveDeviceSettings');
 
-    if (connected === false) {
+    if (context.connected === false) {
       connectionAlert();
       return;
     } else {
       const message = new Paho.Message(rotationTime);
-      message.destinationName = `katzomat/${name}/settings`;
+      message.destinationName = `katzomat/${context.name}/settings`;
       client.send(message);
     }
 
@@ -489,85 +493,43 @@ const Page = () => {
 
   return (
     <SafeAreaProvider>
-      <PageContext.Provider value={[connected, setConnected, name, setName]}>
-        <NavigationContainer>
-          {/*<NativeStackExample /> */}
-          <Tab.Navigator
-            screenOptions={{
-              tabBarActiveTintColor: 'tomato',
-              tabBarInactiveTintColor: 'blue',
-              headerTintColor: 'white',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
-              headerStyle: {
-                backgroundColor: 'red',
-              },
+      <NavigationContainer>
+        {/*<NativeStackExample /> */}
+        <Tab.Navigator
+          screenOptions={{
+            tabBarActiveTintColor: 'tomato',
+            tabBarInactiveTintColor: 'blue',
+            headerTintColor: 'white',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+            headerStyle: {
+              backgroundColor: 'red',
+            },
+          }}>
+          <Tab.Screen
+            name="HomeTab"
+            //component={HomeTabScreen}
+            options={{
+              tabBarBadge: 3,
+              title: 'Home',
+              headerTitle: `${status}`,
+              tabBarIcon: ({size, color}) => <Icon name={'home'} size={20} />,
             }}>
-            <Tab.Screen
-              name="HomeTab"
-              //component={HomeTabScreen}
-              options={{
-                tabBarBadge: 3,
-                title: 'Home',
-                headerTitle: `${status}`,
-                tabBarIcon: ({size, color}) => <Icon name={'home'} size={20} />,
-              }}>
-              {props => (
-                <HomeTabScreen
-                  {...props}
-                  connect={connect}
-                  feed={feed}
-                  refresh={refresh}
-                  imgs={imgs}
-                  timetable={timetable}
-                  alert={alert}
-                />
-              )}
-            </Tab.Screen>
-            <Tab.Screen
-              name="Timetable"
-              //component={HomeTabScreen}
-              options={{
-                tabBarBadge: 3,
-                title: 'Timetable',
-                headerTitle: `${status}`,
-                tabBarIcon: ({size, color}) => <Icon name={'home'} size={20} />,
-              }}>
-              {props => (
-                <TimeTabScreen
-                  {...props}
-                  connect={connect}
-                  timetable={timetable}
-                  alert={alert}
-                />
-              )}
-            </Tab.Screen>
-            <Tab.Screen
-              name="SettingsTab"
-              //component={SettingsTabScreen}
-              options={{
-                title: 'Settings',
-                headerTitle: `${status}`,
-                tabBarIcon: ({size, color}) => (
-                  <Icon name={'setting'} size={20} />
-                ),
-              }}>
-              {props => (
-                <SettingsTabScreen
-                  {...props}
-                  connect={connect}
-                  saveAccountSettings={saveAccountSettings}
-                  loadAccountSettings={loadAccountSettings}
-                  saveDeviceSettings={saveDeviceSettings}
-                  timetable={timetable}
-                  alert={alert}
-                />
-              )}
-            </Tab.Screen>
-          </Tab.Navigator>
-        </NavigationContainer>
-      </PageContext.Provider>
+            {props => (
+              <HomeTabScreen
+                {...props}
+                connect={connect}
+                feed={feed}
+                refresh={refresh}
+                imgs={imgs}
+                timetable={timetable}
+                alert={alert}
+              />
+            )}
+          </Tab.Screen>
+        </Tab.Navigator>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 };
@@ -577,8 +539,8 @@ interface ChildProps {
 }
 
 function HomeTabScreen(route) {
-  const [connected, setConnected] = React.useContext(PageContext);
-  const [imgs, setImgs] = React.useContext(PageContext);
+  const {connected, setConnected} = React.useContext(PageContext);
+  const [imgs, setImgs] = useState([]);
   const [imgActive, setimgActive] = useState(0);
   const [imgsLength, setimgsLength] = useState(0);
 
@@ -671,340 +633,6 @@ function HomeTabScreen(route) {
           />
         </View>
       </SafeAreaView>
-    </View>
-  );
-}
-
-function TimeTabScreen(route) {
-  const [connected, setConnected] = React.useContext(PageContext);
-  const [timetable, setTimetable] = useState([]);
-  const [imgActive, setimgActive] = useState(0);
-  const [imgsLength, setimgsLength] = useState(0);
-  const [modalWeekdaysVisible, setModalWeekdaysVisible] = useState(false);
-  const [checked, onChange] = useState({monday: false, tuesday: false});
-
-  const [weekdays, setWeekdays] = useState([]);
-  const options = ['Monday', 'Tuesday', 'Wednesday'];
-
-  const [date, setDate] = useState(new Date(1598051730000));
-  const [time, setTime] = useState(new Date(1598051730000));
-  var showTimePickerAfter = false;
-  var mode = '';
-
-  const onDateChange = (event, selectedDate) => {
-    console.log(mode);
-    console.log(selectedDate);
-    const currentDate = selectedDate;
-    if (mode === 'date') {
-      setDate(currentDate);
-    }
-    if (mode === 'time') {
-      setTime(currentDate);
-    }
-    //setDate(currentDate);
-
-    if (showTimePickerAfter) {
-      showTimePickerAfter = false;
-      showTimepicker();
-    }
-  };
-
-  const showMode = currentMode => {
-    DateTimePickerAndroid.open({
-      value: date,
-      onChange: onDateChange,
-      mode: currentMode,
-      is24Hour: true,
-    });
-  };
-
-  const showDatepicker = boolean => {
-    showTimePickerAfter = boolean;
-    mode = 'date';
-    showMode(mode);
-  };
-
-  const showTimepicker = () => {
-    mode = 'time';
-    showMode(mode);
-  };
-
-  React.useLayoutEffect(() => {
-    route.navigation.setOptions({
-      //headerTitle: `Count is ${status}`, //use this to make the title changeable
-      headerRight: () => (
-        <View style={styles.connectButton}>
-          <Button
-            title={connected ? 'Connected' : 'Log In'}
-            color="black"
-            onPress={() => route.connect()}
-          />
-        </View>
-      ),
-    });
-  }, [route, route.navigation, connected]); // ← This `connected` here ensures that the header state is updated
-
-  function removeTimetableEntry(index) {
-    var arr = route.timetable;
-    arr.splice(index, 1);
-    if (arr.length === 0) {
-      console.log('new');
-      arr = [{recurring: false, text: 'No entry'}];
-    }
-    console.log('func', index, arr);
-    setTimetable(arr);
-  }
-
-  function pickWeekday(selectedWeekday) {
-    //const index = weekdays.findIndex(weekday => weekday === selectedWeekday);
-
-    if (weekdays.includes(selectedWeekday)) {
-      setWeekdays(weekdays.filter(weekday => weekday !== selectedWeekday));
-      return;
-    }
-
-    setWeekdays(weekday => weekdays.concat(selectedWeekday));
-    //console.log(weekdays);
-  }
-
-  const timetableAlert = () =>
-    Alert.alert(
-      'Recurring?',
-      'Do you want to add a timetable entry that is recurring or just onetime?',
-      [
-        {
-          text: 'Cancel',
-          onPress: () => console.log('Cancel Pressed'),
-          style: 'cancel',
-        },
-        {
-          text: 'Recurring',
-          onPress: () => setModalWeekdaysVisible(!modalWeekdaysVisible),
-        },
-        {text: 'Onetime Only', onPress: () => showDatepicker(true)},
-      ],
-    );
-
-  return (
-    <View style={styles.page}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.wrap}>
-          <ScrollView
-            ref={view => (this._scrollView = view)}
-            //onScroll={({nativeEvent}) => onchange(nativeEvent)}
-            //onScroll={onChange}
-            //showsHorizontalScrollIndicator={false}
-            pagingEnabeled
-            vertical
-            style={styles.wrap}>
-            {timetable.map((e, index) => {
-              console.log('view:', e);
-              return (
-                <View key={index}>
-                  <Text>{e.text}</Text>
-                  <Button
-                    title={'Remove Entry'}
-                    onPress={() => removeTimetableEntry(index)}
-                  />
-                </View>
-              );
-            })}
-          </ScrollView>
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={modalWeekdaysVisible}
-            onRequestClose={() => {
-              setModalWeekdaysVisible(!modalWeekdaysVisible);
-            }}>
-            <View style={styles.centeredView}>
-              <View style={styles.modalView}>
-                <View style={styles.options}>
-                  <Text>Pick your feeding days and time:</Text>
-                  {options.map(option => (
-                    <View key={option}>
-                      <Pressable
-                        style={styles.checkBox}
-                        onPress={() => pickWeekday(option)}>
-                        {weekdays.includes(option) && (
-                          <Text style={styles.check}>✓</Text>
-                        )}
-                      </Pressable>
-                      <Text style={styles.weekdayName}>{option}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                <Pressable
-                  style={[styles.button, styles.buttonClose]}
-                  onPress={() => showTimepicker()}>
-                  <Text>{time.toLocaleTimeString()}</Text>
-                </Pressable>
-
-                <Pressable
-                  style={[styles.button, styles.buttonClose]}
-                  onPress={() =>
-                    setModalWeekdaysVisible(!modalWeekdaysVisible)
-                  }>
-                  <Text style={styles.textStyle}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.button, styles.buttonClose]}
-                  onPress={() => {
-                    setModalWeekdaysVisible(!modalWeekdaysVisible);
-                    //route.alert('addTimetable', {date: date, time: time});
-                    var arr = [];
-                    arr = timetable;
-                    console.log(arr);
-                    arr.push({text: 'asdf', recurring: true});
-                    console.log(arr);
-                    setTimetable(arr);
-                  }}>
-                  <Text style={styles.textStyle}>Ok</Text>
-                </Pressable>
-              </View>
-            </View>
-          </Modal>
-          <View>
-            <Button
-              title={'Add Timetable'}
-              //onPress={() => route.alert('addTimetable')}
-              onPress={() => timetableAlert()}
-            />
-            <Text>selected: {date.toDateString()}</Text>
-            <Text>selected: {time.toLocaleTimeString()}</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    </View>
-  );
-}
-
-function SettingsTabScreen(route, navigation) {
-  const test = React.useContext(PageContext);
-  const [connected, setConnected] = React.useContext(PageContext);
-  const [name, setName] = useState('1');
-  const [password, setPassword] = useState('2');
-  const [domain, setDomain] = useState('3');
-  const [rotationTime, setRotationTime] = useState('3500');
-  const [modalLogVisible, setModalLogVisible] = useState(false);
-  var log = {
-    time: 1661362594,
-    history: [
-      1655735536, 1655735520, 1655731133, 1655731121, 1655730389, 1655730048,
-      1655729820, 1655728624, 1655728006, 1655726862, 1655726756, 1655726656,
-      1655726623, 0,
-    ],
-  };
-  //console.log(status);
-  React.useEffect(() => {
-    route.navigation.setOptions({
-      headerRight: () => (
-        <View style={styles.connectButton}>
-          <Button
-            title={connected ? 'Connected' : 'Log In'}
-            color="black"
-            onPress={() => route.connect()}
-          />
-        </View>
-      ),
-    });
-  }, [route, route.navigation, connected]);
-
-  function onTextChanged(value) {
-    // code to remove non-numeric characters from text
-    //this.setState({number: value.replace(/[- #*;,.<>\{\}\[\]\\\/]/gi, '')});
-    setRotationTime(value.replace(/[^0-9]/g, ''));
-  }
-
-  return (
-    <View style={styles.page}>
-      <Text>Settings Tab! </Text>
-      <Text>Account Settings: </Text>
-      <TextInput
-        style={styles.input}
-        maxLength={20}
-        onChangeText={setDomain}
-        value={domain}
-        placeholder="Katzapp Domain"
-        keyboardType="url"
-      />
-      <TextInput
-        style={styles.input}
-        maxLength={20}
-        onChangeText={setName}
-        value={name}
-        placeholder="Account Name"
-        keyboardType="default"
-      />
-      <TextInput
-        style={styles.input}
-        maxLength={20}
-        onChangeText={setPassword}
-        value={password}
-        placeholder="Account password"
-        keyboardType="default"
-      />
-      <Button
-        title="Save"
-        color="black"
-        onPress={() =>
-          route.saveAccountSettings({
-            domain: domain,
-            name: name,
-            password: password,
-          })
-        }
-      />
-      <Text>Device Settings: </Text>
-      <Text>Rotation Time in Milliseconds: </Text>
-      <TextInput
-        style={styles.input}
-        maxLength={10}
-        //onChangeText={setRotationTime}
-        onChangeText={value => onTextChanged(value)}
-        value={rotationTime}
-        placeholder="Rotation Time here"
-        keyboardType="default"
-      />
-      <Button
-        title="Save"
-        color="black"
-        onPress={() => route.saveDeviceSettings(rotationTime)}
-      />
-      <View style={styles.button}>
-        <Button
-          title="Log"
-          color="black"
-          onPress={() => setModalLogVisible(!modalLogVisible)}
-        />
-      </View>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalLogVisible}
-        onRequestClose={() => {
-          setModalLogVisible(!modalLogVisible);
-        }}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <View style={styles.centeredView}>
-              <Text>Katzomat time: {log.time}</Text>
-              <Text>The Cat was fed on the following dates:</Text>
-              {log.history.map(l => (
-                <View key={l}>
-                  <Text>{l}</Text>
-                </View>
-              ))}
-              <Button
-                title="Close"
-                color="black"
-                onPress={() => setModalLogVisible(!modalLogVisible)}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
