@@ -2,6 +2,7 @@ import Paho from 'paho-mqtt'; //https://www.eclipse.org/paho/files/jsdoc/index.h
 
 import {useState, useEffect} from 'react';
 //import { StatusBar } from 'expo-status-bar';
+import {useNetInfo} from '@react-native-community/netinfo';
 import {
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import {
   Platform,
   TouchableOpacitiy,
   TextInput,
+  NetInfo,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {DateTimePickerAndroid} from '@react-native-community/datetimepicker';
@@ -33,6 +35,10 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import ImageSlider from './ImageSlider';
 
 import EncryptedStorage from 'react-native-encrypted-storage';
+
+import DefaultImage from './assets/default_img.jpg';
+// splash screen
+// https://blog.logrocket.com/building-a-splash-screen-in-react-native/
 
 const Tab = createBottomTabNavigator();
 export const PageContext = React.createContext();
@@ -55,30 +61,29 @@ const HEIGHT = Dimensions.get('window').height;
 var imgKeys = [];
 var dotKeys = [];
 
-var once = false;
+const headerMidString = ' is: ';
 
 export default function App() {
-  var statusString = 'Katzomat Status:';
-  const [status, setStatus] = useState(`${statusString} unkown`);
+  const [status, setStatus] = useState('offline');
   const [connected, setConnected] = useState(false);
   const [domain, setDomain] = useState('adeptuscat.ddns.net');
-  const [name, setName] = useState('katz');
-  const [password, setPassword] = useState('katz!');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [imgs, setImgs] = useState([
     {
       timestamp: 1661360552, //1661360551
-      uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Eclectus_roratus_in_Zoo_Augsburg.jpg/1280px-Eclectus_roratus_in_Zoo_Augsburg.jpg',
-      date: 'fsfasdf',
+      uri: Image.resolveAssetSource(DefaultImage).uri,
+      date: '',
     },
   ]);
   const [timetable, setTimetable] = useState([]);
   const [rotationTime, setRotationTime] = useState(3000);
   const [value, setValue] = useState([1]);
+  const [log, setLog] = useState({time: '', history: []});
 
   return (
     <PageContext.Provider
       value={{
-        statusString,
         status,
         setStatus,
         connected,
@@ -97,6 +102,8 @@ export default function App() {
         setRotationTime,
         value,
         setValue,
+        log,
+        setLog,
       }}>
       <Page />
     </PageContext.Provider>
@@ -105,7 +112,6 @@ export default function App() {
 
 const Page = () => {
   const {
-    statusString,
     status,
     setStatus,
     connected,
@@ -122,6 +128,8 @@ const Page = () => {
     setTimetable,
     rotationTime,
     setRotationTime,
+    log,
+    setLog,
   } = React.useContext(PageContext);
   const [value, setValue] = useState(0);
   //const [password, setPassword] = useState('katz!');
@@ -130,10 +138,36 @@ const Page = () => {
   //const [img, setImg] = useState('Base64ImgHere');
   //const [timetable, setTimetable] = useState([]);
   const [statusVerbose, setStatusVerbose] = useState({});
+
   function formatTime(timestamp) {
     var date = new Date(timestamp * 1000);
+    console.log(date.getTimezoneOffset());
     var year = date.getFullYear();
-    var month = date.getMonth();
+    var month = date.getMonth() + 1;
+    var day = String(date.getDate()).padStart(2, '0');
+    var hours = date.getHours();
+    var minutes = '0' + date.getMinutes();
+    var seconds = '0' + date.getSeconds();
+    var formattedTime =
+      day +
+      '.' +
+      month +
+      '.' +
+      year +
+      ' ' +
+      hours +
+      ':' +
+      minutes.substr(-2) +
+      ':' +
+      seconds.substr(-2);
+    return formattedTime;
+  }
+
+  function formatTimeMinusTimezone(timestamp) {
+    var d = new Date();
+    var date = new Date(timestamp * 1000 + d.getTimezoneOffset() * 60 * 1000);
+    var year = date.getFullYear();
+    var month = date.getMonth() + 1;
     var day = String(date.getDate()).padStart(2, '0');
     var hours = date.getHours();
     var minutes = '0' + date.getMinutes();
@@ -155,7 +189,7 @@ const Page = () => {
 
   function onMessage(message) {
     if (message.destinationName === `katzomat/${name}/status`) {
-      setStatus(`${statusString} ${message.payloadString}`);
+      setStatus(`${message.payloadString}`);
     }
     if (message.destinationName === `katzomat/${name}/status/verbose`) {
       //console.log(message.payloadString);
@@ -167,11 +201,13 @@ const Page = () => {
         time: '',
         history: [],
       };
-      dict.time = formatTime(obj.time);
+      dict.time = formatTimeMinusTimezone(obj.time);
       for (let i = 0; i < obj.history.length; i++) {
-        dict.history.push(formatTime(obj.history[i]));
+        dict.history.push(formatTimeMinusTimezone(obj.history[i]));
       }
       console.log(dict);
+      setLog(dict);
+      //console.log(dict);
     }
     const str = `katzomat/${name}/images`;
     const re = message.destinationName.match(str);
@@ -193,9 +229,10 @@ const Page = () => {
           return;
         }
       }
-      var date = new Date(timestamp * 1000);
+      var d = new Date();
+      var date = new Date(timestamp * 1000 + d.getTimezoneOffset() * 60 * 1000);
       var year = date.getFullYear();
-      var month = date.getMonth();
+      var month = date.getMonth() + 1;
       var day = String(date.getDate()).padStart(2, '0');
       var hours = date.getHours();
       var minutes = '0' + date.getMinutes();
@@ -314,6 +351,7 @@ const Page = () => {
           text: item_text,
           recurring: recurring,
           timestamp: values[i].timestamp,
+          weekdays: [],
         });
       } else {
         const zeroPad = (num, places) => String(num).padStart(places, '0');
@@ -331,26 +369,35 @@ const Page = () => {
       //console.log(item_text, recurring);
     }
     setTimetable([...arr]);
+
+    console.log('done2');
   }
 
   function onConnected(msg) {
-    console.log('Connected!!!!');
+    console.log('Connected!');
     setConnected(true);
   }
 
   function onConnectionLost() {
     setConnected(false);
-    console.log('lost Connection!');
+    //disconnectedAlert();
+    console.log('Lost Connection!');
   }
 
   var reconnect = false;
+  const netInfo = useNetInfo();
 
   function connect() {
     if (connected === true) {
       console.log('disconnect!', connected);
       client.disconnect();
       setTimeout(connectClient, 1000);
+      setStatus('offline');
     } else {
+      console.log(netInfo.isConnected);
+      if (netInfo.isConnected === false) {
+        Alert.alert('Please Connect to the Internet First.');
+      }
       connectClient();
     }
   }
@@ -381,20 +428,31 @@ const Page = () => {
         client.onConnectionLost = onConnectionLost;
       },
       onFailure: () => {
+        disconnectedAlert();
         console.log('Failed to connect!');
       },
     });
   }
+
+  const disconnectedAlert = () =>
+    Alert.alert(
+      'No Connection To Server.',
+      'Check Your Settings And Try Again.',
+      [
+        {
+          text: 'Ok',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel',
+        },
+      ],
+    );
 
   const alert = (flag, data) => {
     if (connected === false) {
       connectionAlert();
       return;
     }
-    if (
-      status === 'Katzomat Status: unkown' ||
-      status === 'Katzomat Status: offline'
-    ) {
+    if (status === 'unkown' || status === 'offline') {
       offlineAlert(flag, data);
       return;
     } else {
@@ -432,8 +490,20 @@ const Page = () => {
         saveDeviceSettings(rotationTime);
         sendDeviceSettings(rotationTime);
         break;
+      case 'refreshStatusVerbose':
+        refreshStatusVerbose();
+        break;
     }
   };
+
+  const refreshStatusVerbose = () => {
+    const message = new Paho.Message('refresh');
+    message.destinationName = `katzomat/${name}/status/verbose/send`;
+    message.qos = 2;
+    message.retained = false;
+    client.send(message);
+    console.log('sent refresh');
+  }
 
   const feedAlert = () =>
     Alert.alert('Feed The Cat', 'Do you want to feed the cat?', [
@@ -473,7 +543,7 @@ const Page = () => {
     const message = new Paho.Message('0');
     message.destinationName = `katzomat/${name}/feed`;
     message.qos = 2;
-    message.retained = true;
+    message.retained = false;
     client.send(message);
     console.log('sent');
   }
@@ -514,11 +584,28 @@ const Page = () => {
         setDomain(obj.settings.domain);
         setName(obj.settings.name);
         setPassword(obj.settings.password);
+        if (obj.settings.name === '') {
+          firstUseAlert();
+        }
+      } else {
+        if (name === '') {
+          firstUseAlert();
+        }
       }
     } catch (error) {
       console.log(error);
+      if (name === '') {
+        firstUseAlert();
+      }
       // There was an error on the native side
     }
+  }
+
+  function firstUseAlert() {
+    Alert.alert(
+      'It seems you are using the KatzoApp for the first time.',
+      'Please got to the Settings Page and enter your Account credentials and try to LogIn.',
+    );
   }
 
   function saveAndSendDeviceSettings(rotationTime) {
@@ -587,28 +674,43 @@ const Page = () => {
         {/*<NativeStackExample /> */}
         <Tab.Navigator
           screenOptions={{
-            tabBarActiveTintColor: 'tomato',
-            tabBarInactiveTintColor: 'blue',
-            headerTintColor: 'white',
+            // https://reactnavigation.org/docs/bottom-tab-navigator/#options
+            // tabbar
+            tabBarStyle: {
+              backgroundColor: '#52626E',
+              fontSize: 15,
+            },
+            tabBarLabelStyle: {
+              fontSize: 15,
+            },
+            tabBarActiveTintColor: buttonBackgroundColor,
+            tabBarInactiveTintColor: styles.text.color,
+
+            //header
+            headerTintColor: styles.text.color, // header text color
             headerTitleStyle: {
-              fontWeight: 'bold',
+              fontWeight: 'bold', // header text style
             },
             headerStyle: {
-              backgroundColor: 'red',
+              backgroundColor: '#52626E', // header background color
             },
           }}>
           <Tab.Screen
             name="HomeTab"
             //component={HomeTabScreen}
             options={{
-              tabBarBadge: 3,
+              tabBarBadge: null,
               title: 'Home',
-              headerTitle: `${status}`,
+              //headerTitle: `${name}${headerMidString}${status}`,
+              headerTitle: connected
+                ? `${name}${headerMidString}${status}`
+                : '',
               tabBarIcon: ({size, color}) => <Icon name={'home'} size={20} />,
             }}>
             {props => (
               <HomeTabScreen
                 {...props}
+                formatTime={formatTime}
                 connect={connect}
                 feed={feed}
                 refresh={refresh}
@@ -621,14 +723,16 @@ const Page = () => {
             name="Timetable"
             //component={HomeTabScreen}
             options={{
-              tabBarBadge: 3,
               title: 'Timetable',
-              headerTitle: `${status}`,
+              headerTitle: connected
+                ? `${name}${headerMidString}${status}`
+                : '',
               tabBarIcon: ({size, color}) => <Icon name={'home'} size={20} />,
             }}>
             {props => (
               <TimeTabScreen
                 {...props}
+                formatTime={formatTime}
                 connect={connect}
                 command={command}
                 timetable={timetable}
@@ -641,7 +745,9 @@ const Page = () => {
             //component={SettingsTabScreen}
             options={{
               title: 'Settings',
-              headerTitle: `${status}`,
+              headerTitle: connected
+                ? `${name}${headerMidString}${status}`
+                : '',
               tabBarIcon: ({size, color}) => (
                 <Icon name={'setting'} size={20} />
               ),
@@ -649,6 +755,7 @@ const Page = () => {
             {props => (
               <SettingsTabScreen
                 {...props}
+                formatTime={formatTime}
                 connect={connect}
                 saveAccountSettings={saveAccountSettings}
                 loadAccountSettings={loadAccountSettings}
@@ -678,19 +785,22 @@ function HomeTabScreen(route) {
     route.navigation.setOptions({
       //headerTitle: `Count is ${status}`, //use this to make the title changeable
       headerRight: () => (
-        <View style={styles.connectButton}>
-          <Button
-            title={connected ? 'Connected' : 'Log In'}
-            color="black"
-            onPress={() => route.connect()}
-          />
+        <View>
+          <Pressable
+            android_ripple={styles.rippleEffect}
+            style={connected ? styles.connectedButton : styles.connectButton}
+            onPress={() => route.connect()}>
+            <Text style={styles.buttonText}>
+              {connected ? 'Connected' : 'Log In'}
+            </Text>
+          </Pressable>
         </View>
       ),
     });
   }, [route, route.navigation, connected]); // ← This `connected` here ensures that the header state is updated
 
   useEffect(() => {
-    console.log('value changed');
+    this._scrollView.scrollToEnd({animated: true});
   }, [imgs]);
 
   const onchange = nativeEvent => {
@@ -745,7 +855,6 @@ function HomeTabScreen(route) {
     <View style={styles.page}>
       <SafeAreaView style={styles.container}>
         <View style={styles.wrap}>
-          <Button title="add" onPress={() => add()} />
           <ScrollView
             ref={view => (this._scrollView = view)}
             onScroll={({nativeEvent}) => onchange(nativeEvent)}
@@ -778,17 +887,20 @@ function HomeTabScreen(route) {
           })}
         </View>
         <View style={styles.wrapDate}>
-          <Text>{imgs[imgActive].date}</Text>
+          <Text style={styles.text}>{imgs[imgActive].date}</Text>
         </View>
-        <View style={styles.button}>
-          <Button title={'Feed The Cat'} onPress={() => route.alert('feed')} />
-        </View>
-        <View style={styles.button}>
-          <Button
-            title={'Refresh Image'}
-            onPress={() => route.alert('refresh')}
-          />
-        </View>
+        <Pressable
+          android_ripple={styles.rippleEffect}
+          style={styles.button}
+          onPress={() => route.alert('feed')}>
+          <Text style={styles.buttonText}>Feed The Cat</Text>
+        </Pressable>
+        <Pressable
+          android_ripple={styles.rippleEffect}
+          style={styles.button}
+          onPress={() => route.alert('refresh')}>
+          <Text style={styles.buttonText}>Refresh Image</Text>
+        </Pressable>
       </SafeAreaView>
     </View>
   );
@@ -836,14 +948,14 @@ function TimeTabScreen(route) {
         console.log('date...');
         var arr = timetable;
         var year = date.getFullYear();
-        var month = date.getMonth();
+        var month = date.getMonth() + 1;
         var day = String(date.getDate()).padStart(2, '0');
         var hours = time.getHours();
         var minutes = '0' + time.getMinutes();
         var formattedTime =
           year +
           '-' +
-          ('0' + (month + 1)).slice(-2) +
+          ('0' + month).slice(-2) +
           '-' +
           day +
           ', ' +
@@ -854,7 +966,9 @@ function TimeTabScreen(route) {
         var tempDate = new Date(
           `${year}-${month + 1}-${day}T${hours}:${minutes}:00`,
         );
-        var timestamp = tempDate.getTime() / 1000;
+        var d = new Date();
+        var timestamp = tempDate.getTime() / 1000 + d.getTimezoneOffset() * 60;
+        var timestamp = parseInt(timestamp, 10);
         arr.push({
           text: formattedTime,
           recurring: false,
@@ -896,12 +1010,15 @@ function TimeTabScreen(route) {
     route.navigation.setOptions({
       //headerTitle: `Count is ${status}`, //use this to make the title changeable
       headerRight: () => (
-        <View style={styles.connectButton}>
-          <Button
-            title={connected ? 'Connected' : 'Log In'}
-            color="black"
-            onPress={() => route.connect()}
-          />
+        <View>
+          <Pressable
+            android_ripple={styles.rippleEffect}
+            style={connected ? styles.connectedButton : styles.connectButton}
+            onPress={() => route.connect()}>
+            <Text style={styles.buttonText}>
+              {connected ? 'Connected' : 'Log In'}
+            </Text>
+          </Pressable>
         </View>
       ),
     });
@@ -948,10 +1065,7 @@ function TimeTabScreen(route) {
       connectionAlert();
       return;
     }
-    if (
-      status === 'Katzomat Status: unkown' ||
-      status === 'Katzomat Status: offline'
-    ) {
+    if (status === 'unkown' || status === 'offline') {
       offlineAlert(flag, data);
       return;
     } else {
@@ -1025,12 +1139,14 @@ function TimeTabScreen(route) {
             {timetable.map((e, index) => {
               console.log(index, 'whut', e);
               return (
-                <View key={index}>
-                  <Text>{e.text}</Text>
-                  <Button
-                    title={'Remove Entry'}
-                    onPress={() => removeTimetableEntry(index)}
-                  />
+                <View key={index} style={styles.timetableEntry}>
+                  <Text style={styles.text}>{e.text}</Text>
+                  <Pressable
+                    android_ripple={styles.rippleEffect}
+                    style={styles.entrybutton}
+                    onPress={() => removeTimetableEntry(index)}>
+                    <Text style={styles.entryButtonText}>Remove Entry</Text>
+                  </Pressable>
                 </View>
               );
             })}
@@ -1044,11 +1160,16 @@ function TimeTabScreen(route) {
             }}>
             <View style={styles.centeredView}>
               <View style={styles.modalView}>
+                <Text style={styles.headline2}>
+                  Pick your feeding days and time:
+                </Text>
                 <View style={styles.options}>
-                  <Text>Pick your feeding days and time:</Text>
                   {options.map(option => (
-                    <View style={{flexDirection: 'row'}} key={option}>
+                    <View
+                      style={{flexDirection: 'row', padding: 7}}
+                      key={option}>
                       <Pressable
+                        android_ripple={styles.rippleEffect}
                         style={styles.checkBox}
                         onPress={() => pickWeekday(option)}>
                         {weekdays.includes(option) && (
@@ -1061,87 +1182,93 @@ function TimeTabScreen(route) {
                 </View>
 
                 <Pressable
-                  style={[styles.button, styles.buttonClose]}
+                  android_ripple={styles.rippleEffect}
+                  style={styles.button}
                   onPress={() => showTimepicker()}>
-                  <Text>{time.toLocaleTimeString()}</Text>
+                  <Text style={styles.buttonText}>
+                    {time.toLocaleTimeString()}
+                  </Text>
                 </Pressable>
 
-                <Pressable
-                  style={[styles.button, styles.buttonClose]}
-                  onPress={() =>
-                    setModalWeekdaysVisible(!modalWeekdaysVisible)
-                  }>
-                  <Text style={styles.textStyle}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.button, styles.buttonClose]}
-                  onPress={() => {
-                    setModalWeekdaysVisible(!modalWeekdaysVisible);
-                    var arr = [];
-                    arr = timetable;
-                    var hours = time.getHours();
-                    var minutes = '0' + time.getMinutes();
-                    var weeksdaysStr = '';
-                    var weekdaysArr = [];
-                    if (weekdays.length === 0) {
-                      weekdaysArr = [0];
-                    }
-                    weekdays.map(day => {
-                      weeksdaysStr += day;
-                      weeksdaysStr += ', ';
-                      if (day === 'Everyday') {
-                        weekdaysArr.push(0);
+                <View style={styles.buttonContainerInline}>
+                  <Pressable
+                    android_ripple={styles.rippleEffect}
+                    style={styles.button}
+                    onPress={() =>
+                      setModalWeekdaysVisible(!modalWeekdaysVisible)
+                    }>
+                    <Text style={styles.buttonText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    android_ripple={styles.rippleEffect}
+                    style={styles.button}
+                    onPress={() => {
+                      setModalWeekdaysVisible(!modalWeekdaysVisible);
+                      var arr = [];
+                      arr = timetable;
+                      var hours = time.getHours();
+                      var minutes = '0' + time.getMinutes();
+                      var weeksdaysStr = '';
+                      var weekdaysArr = [];
+                      if (weekdays.length === 0) {
+                        weekdaysArr = [0];
                       }
-                      if (day === 'Sunday') {
-                        weekdaysArr.push(1);
+                      weekdays.map(day => {
+                        weeksdaysStr += day;
+                        weeksdaysStr += ', ';
+                        if (day === 'Everyday') {
+                          weekdaysArr.push(0);
+                        }
+                        if (day === 'Sunday') {
+                          weekdaysArr.push(1);
+                        }
+                        if (day === 'Monday') {
+                          weekdaysArr.push(2);
+                        }
+                        if (day === 'Tuesday') {
+                          weekdaysArr.push(3);
+                        }
+                        if (day === 'Wednesday') {
+                          weekdaysArr.push(4);
+                        }
+                        if (day === 'Thursday') {
+                          weekdaysArr.push(5);
+                        }
+                        if (day === 'Friday') {
+                          weekdaysArr.push(6);
+                        }
+                        if (day === 'Saturday') {
+                          weekdaysArr.push(7);
+                        }
+                      });
+                      if (weekdays.length === 0 || weekdays.length === 7) {
+                        weeksdaysStr = 'Everyday, ';
                       }
-                      if (day === 'Monday') {
-                        weekdaysArr.push(2);
-                      }
-                      if (day === 'Tuesday') {
-                        weekdaysArr.push(3);
-                      }
-                      if (day === 'Wednesday') {
-                        weekdaysArr.push(4);
-                      }
-                      if (day === 'Thursday') {
-                        weekdaysArr.push(5);
-                      }
-                      if (day === 'Friday') {
-                        weekdaysArr.push(6);
-                      }
-                      if (day === 'Saturday') {
-                        weekdaysArr.push(7);
-                      }
-                    });
-                    if (weekdays.length === 0 || weekdays.length === 7) {
-                      weeksdaysStr = 'Everyday, ';
-                    }
-                    var formattedTime =
-                      ('0' + hours).slice(-2) + ':' + minutes.substr(-2);
-                    arr.push({
-                      text: `${weeksdaysStr}${formattedTime}`,
-                      recurring: true,
-                      weekdays: weekdaysArr,
-                      hour: hours,
-                      minute: time.getMinutes(),
-                    });
-                    setTimetable([...arr]);
-                    route.command('sendTimetable', timetable);
-                  }}>
-                  <Text style={styles.textStyle}>Ok</Text>
-                </Pressable>
+                      var formattedTime =
+                        ('0' + hours).slice(-2) + ':' + minutes.substr(-2);
+                      arr.push({
+                        text: `${weeksdaysStr}${formattedTime}`,
+                        recurring: true,
+                        weekdays: weekdaysArr,
+                        hour: hours,
+                        minute: time.getMinutes(),
+                      });
+                      setTimetable([...arr]);
+                      route.command('sendTimetable', timetable);
+                    }}>
+                    <Text style={styles.buttonText}>Ok</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           </Modal>
           <View>
-            <Button
-              title={'Add Timetable'}
-              //onPress={() => route.alert('addTimetable')}
-              onPress={() => alert('timetableAlert')}
-            />
-            <Text>selected: {date.toDateString()}</Text>
-            <Text>selected: {time.toLocaleTimeString()}</Text>
+            <Pressable
+              android_ripple={styles.rippleEffect}
+              style={styles.button}
+              onPress={() => alert('timetableAlert')}>
+              <Text style={styles.buttonText}>Add Timetable</Text>
+            </Pressable>
           </View>
         </View>
       </SafeAreaView>
@@ -1160,26 +1287,30 @@ function SettingsTabScreen(route, navigation) {
     setPassword,
     rotationTime,
     setRotationTime,
+    log,
+    setLog,
   } = React.useContext(PageContext);
   const [modalLogVisible, setModalLogVisible] = useState(false);
-  var log = {
-    time: 1661362594,
-    history: [
-      1655735536, 1655735520, 1655731133, 1655731121, 1655730389, 1655730048,
-      1655729820, 1655728624, 1655728006, 1655726862, 1655726756, 1655726656,
-      1655726623, 0,
-    ],
-  };
+
+  React.useEffect(() => {
+    if (modalLogVisible === true) {
+      route.alert('refreshStatusVerbose');
+    }
+  }, [modalLogVisible]);
+
   //console.log(status);
   React.useEffect(() => {
     route.navigation.setOptions({
       headerRight: () => (
-        <View style={styles.connectButton}>
-          <Button
-            title={connected ? 'Connected' : 'Log In'}
-            color="black"
-            onPress={() => route.connect()}
-          />
+        <View>
+          <Pressable
+            android_ripple={styles.rippleEffect}
+            style={connected ? styles.connectedButton : styles.connectButton}
+            onPress={() => route.connect()}>
+            <Text style={styles.buttonText}>
+              {connected ? 'Connected' : 'Log In'}
+            </Text>
+          </Pressable>
         </View>
       ),
     });
@@ -1193,117 +1324,142 @@ function SettingsTabScreen(route, navigation) {
 
   return (
     <View style={styles.page}>
-      <Text>Settings Tab! </Text>
-      <Text>Account Settings: </Text>
-      <TextInput
-        style={styles.input}
-        maxLength={20}
-        onChangeText={setDomain}
-        value={domain}
-        placeholder="Katzapp Domain"
-        keyboardType="url"
-      />
-      <TextInput
-        style={styles.input}
-        maxLength={20}
-        onChangeText={setName}
-        value={name}
-        placeholder="Account Name"
-        keyboardType="default"
-      />
-      <TextInput
-        style={styles.input}
-        maxLength={20}
-        onChangeText={setPassword}
-        value={password}
-        placeholder="Account password"
-        keyboardType="default"
-      />
-      <Button
-        title="Save"
-        color="black"
-        onPress={() =>
-          route.saveAccountSettings({
-            domain: domain,
-            name: name,
-            password: password,
-          })
-        }
-      />
-      <Text>Device Settings: </Text>
-      <Text>Rotation Time in Milliseconds: </Text>
-      <TextInput
-        style={styles.input}
-        maxLength={10}
-        //onChangeText={setRotationTime}
-        onChangeText={value => onTextChanged(value)}
-        value={rotationTime}
-        placeholder="Rotation Time here"
-        keyboardType="default"
-      />
-      <Button
-        title="Save"
-        color="black"
-        onPress={() => route.alert('sendDeviceSettings')}
-      />
-      <View style={styles.button}>
-        <Button
-          title="Log"
-          color="black"
-          onPress={() => setModalLogVisible(!modalLogVisible)}
-        />
-      </View>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalLogVisible}
-        onRequestClose={() => {
-          setModalLogVisible(!modalLogVisible);
-        }}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.wrap}>
+          <Text style={styles.text}>Settings Tab! </Text>
+          <Text style={styles.text}>Account Settings: </Text>
+          <TextInput
+            style={styles.input}
+            maxLength={20}
+            onChangeText={setDomain}
+            value={domain}
+            placeholder="Katzapp Domain"
+            keyboardType="url"
+          />
+          <TextInput
+            style={styles.input}
+            maxLength={20}
+            onChangeText={setName}
+            value={name}
+            placeholder="Account Name"
+            keyboardType="default"
+          />
+          <TextInput
+            style={styles.input}
+            maxLength={20}
+            onChangeText={setPassword}
+            value={password}
+            placeholder="Account password"
+            keyboardType="default"
+          />
+          <Pressable
+            android_ripple={styles.rippleEffect}
+            style={styles.button}
+            onPress={() =>
+              route.saveAccountSettings({
+                domain: domain,
+                name: name,
+                password: password,
+              })
+            }>
+            <Text style={styles.buttonText}>Save Account Settings</Text>
+          </Pressable>
+          <Text style={styles.text}>Device Settings: </Text>
+          <Text style={styles.text}>Rotation Time in Milliseconds: </Text>
+          <TextInput
+            style={styles.input}
+            maxLength={10}
+            //onChangeText={setRotationTime}
+            onChangeText={value => onTextChanged(value)}
+            value={rotationTime}
+            placeholder="Rotation Time here"
+            keyboardType="default"
+          />
+          <Pressable
+            android_ripple={styles.rippleEffect}
+            style={styles.button}
+            onPress={() => route.alert('sendDeviceSettings')}>
+            <Text style={styles.buttonText}>Save Device Settings</Text>
+          </Pressable>
+          <Pressable
+            android_ripple={styles.rippleEffect}
+            style={styles.button}
+            onPress={() => setModalLogVisible(!modalLogVisible)}>
+            <Text style={styles.buttonText}>Show Feeding Log</Text>
+          </Pressable>
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modalLogVisible}
+            onRequestClose={() => {
+              setModalLogVisible(!modalLogVisible);
+            }}>
             <View style={styles.centeredView}>
-              <Text>Katzomat time: {log.time}</Text>
-              <Text>The Cat was fed on the following dates:</Text>
-              {log.history.map(l => (
-                <View key={l}>
-                  <Text>{l}</Text>
+              <View style={styles.modalView}>
+                <View style={styles.centeredView}>
+                  <Text style={styles.text}>Katzomat time: {log.time}</Text>
+                  <Text style={styles.text}>
+                    The Cat was fed on the following dates:
+                  </Text>
+                  {log.history.map(l => (
+                    <View key={l}>
+                      <Text style={styles.text}>{l}</Text>
+                    </View>
+                  ))}
+                  <Button
+                    title="Close"
+                    color="black"
+                    onPress={() => setModalLogVisible(!modalLogVisible)}
+                  />
                 </View>
-              ))}
-              <Button
-                title="Close"
-                color="black"
-                onPress={() => setModalLogVisible(!modalLogVisible)}
-              />
+              </View>
             </View>
-          </View>
+          </Modal>
         </View>
-      </Modal>
+      </SafeAreaView>
     </View>
   );
 }
 
+const PageBackgroundColor = '#252E33'; //#234254
+const menuBackgroundColor = '#52626E';
+const buttonBackgroundColor = '#234254';
+const buttonTextColor = '#D8E6FE';
+const textColor = '#D8E6FE';
+const connectButtonBackgroundColor = '#E00C23';
+
 const styles = StyleSheet.create({
+  headline1: {
+    textAlign: 'center',
+    color: textColor,
+    fontSize: 20,
+  },
+  headline2: {
+    textAlign: 'center',
+    color: textColor,
+    fontSize: 18,
+  },
   check: {
     alignSelf: 'center',
   },
   weekdayName: {
     textTransform: 'capitalize',
     fontSize: 16,
+    color: textColor,
   },
   checkBox: {
     width: 25,
     height: 25,
     borderWidth: 2,
-    borderColor: 'green',
-    marginRight: 5,
+    borderColor: textColor,
+    marginRight: 10,
   },
   weekdays: {
     flexDirection: 'row',
   },
   options: {
     alignSelf: 'flex-start',
-    marginLeft: 50,
+    padding: 10,
   },
   container: {
     flex: 1,
@@ -1322,11 +1478,11 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     margin: 3,
-    color: 'black',
+    color: '#E00C23',
   },
   dot: {
     margin: 3,
-    color: 'red',
+    color: '#234254',
   },
   wrapDate: {
     alignSelf: 'center',
@@ -1339,7 +1495,7 @@ const styles = StyleSheet.create({
   },
   modalView: {
     margin: 20,
-    backgroundColor: 'blue',
+    backgroundColor: menuBackgroundColor,
     borderRadius: 20,
     padding: 50,
     alignItems: 'center',
@@ -1356,32 +1512,110 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#6ED4C8',
+    backgroundColor: PageBackgroundColor,
     padding: 30,
   },
   header: {
-    headerTintColor: 'black',
+    headerTintColor: 'grey',
     headerTitleStyle: {
       fontWeight: 'bold',
     },
     headerStyle: {
-      backgroundColor: 'red',
+      backgroundColor: menuBackgroundColor,
       paddingHorizontal: 15,
     },
   },
   connectButton: {
-    margin: 5,
+    borderRadius: 10,
+    padding: 10,
+    marginRight: 5,
+    backgroundColor: connectButtonBackgroundColor,
+  },
+  connectedButton: {
+    borderRadius: 10,
+    padding: 10,
+    marginRight: 5,
+    backgroundColor: buttonBackgroundColor,
   },
   button: {
+    borderRadius: 10,
+    padding: 10,
     margin: 10,
+    backgroundColor: buttonBackgroundColor,
     //padding: 20,
   },
+  buttonRight: {
+    borderRadius: 10,
+    paddingLeft: 20,
+    margin: 10,
+    backgroundColor: buttonBackgroundColor,
+  },
+  buttonLeft: {
+    borderRadius: 10,
+    paddingRight: 20,
+    margin: 10,
+    backgroundColor: buttonBackgroundColor,
+  },
+  buttonContainerInline: {
+    flexDirection: 'row',
+    padding: 10,
+    margin: 10,
+    //backgroundColor: 'white',
+  },
+  buttonText: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    textAlign: 'center',
+    color: buttonTextColor,
+  },
+  entryButton: {
+    borderRadius: 10,
+    alignSelf: 'center',
+  },
+  entryButtonText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+    color: buttonTextColor,
+  },
   input: {
+    borderRadius: 5,
     alignSelf: 'stretch',
     flexDirection: 'row',
+    color: textColor,
+    borderColor: buttonBackgroundColor,
     height: 30,
-    margin: 6,
+    margin: 10,
     borderWidth: 1,
     padding: 5,
   },
+  text: {
+    textAlign: 'center',
+    color: buttonTextColor,
+    fontSize: 14,
+  },
+  timetableEntry: {
+    flex: 1,
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    margin: 10,
+    padding: 10,
+    backgroundColor: buttonBackgroundColor,
+  },
+  rippleEffect: {
+    color: 'menuBackgroundColor',
+    borderless: false,
+  },
 });
+
+const MyTheme = {
+  dark: false,
+  colors: {
+    primary: 'rgb(255, 45, 85)',
+    background: 'rgb(242, 242, 242)',
+    card: 'rgb(255, 255, 255)',
+    text: 'rgb(28, 28, 30)',
+    border: 'rgb(199, 199, 204)',
+    notification: 'rgb(255, 69, 58)',
+  },
+};
