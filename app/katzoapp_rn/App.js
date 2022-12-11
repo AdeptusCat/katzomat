@@ -211,7 +211,7 @@ const Page = () => {
     }
     const str = `katzomat/${name}/images`;
     const re = message.destinationName.match(str);
-    if (re != null) {
+    if (re !== null) {
       if (message.destinationName === `katzomat/${name}/images/take`) {
         console.log('take');
         return;
@@ -387,7 +387,7 @@ const Page = () => {
   var reconnect = false;
   const netInfo = useNetInfo();
 
-  function connect() {
+  function connect(_domain = '', _name = '', _password = '') {
     if (connected === true) {
       console.log('disconnect!', connected);
       client.disconnect();
@@ -398,21 +398,38 @@ const Page = () => {
       if (netInfo.isConnected === false) {
         Alert.alert('Please Connect to the Internet First.');
       }
-      connectClient();
+      if (_name !== '') {
+        connectClient(_domain, _name, _password);
+      } else {
+        connectClient();
+      }
     }
   }
 
-  async function connectClient() {
+  async function connectClient(_domain = '', _name = '', _password = '') {
     if (reconnect === true) {
       console.log('disconnect!', connected);
       client.disconnect();
       setTimeout(connect, 2000);
       reconnect = false;
     }
+    var connectPassword = password;
+    var connectName = name;
+
+    // connect on startup wont work without passing the credentials manually
+    // somehow setName and setPassword are not updated until pressing connect button
+    if (_name !== '') {
+      connectPassword = _password;
+      connectName = _name;
+    }
+
+    console.log('connect');
+    console.log(name);
+    console.log(password);
     client.connect({
       useSSL: true,
-      userName: name,
-      password: password,
+      userName: connectName,
+      password: connectPassword,
       keepAliveInterval: 2,
       cleanSession: true,
       onSuccess: () => {
@@ -552,7 +569,7 @@ const Page = () => {
     const message = new Paho.Message('0');
     message.destinationName = `katzomat/${name}/images/take`;
     message.qos = 2;
-    message.retained = true;
+    message.retained = false;
     client.send(message);
     console.log('sent');
   }
@@ -585,7 +602,14 @@ const Page = () => {
         setName(obj.settings.name);
         setPassword(obj.settings.password);
         if (obj.settings.name === '') {
+          console.log('first use');
           firstUseAlert();
+        } else {
+          connect(
+            obj.settings.domain,
+            obj.settings.name,
+            obj.settings.password,
+          );
         }
       } else {
         if (name === '') {
@@ -666,6 +690,7 @@ const Page = () => {
   React.useEffect(() => {
     loadAccountSettings();
     loadDeviceSettings();
+    //setTimeout(connect, 5000);
   }, []);
 
   return (
